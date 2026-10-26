@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "lint": "biome lint ./neon ./neon.ts",
+    "format:check": "biome check ./neon ./neon.ts",
+    "format:fix": "biome check --write ./neon ./neon.ts",
+    "checkout:prod": "neon checkout production --env --file .env.production",
+    "deploy": "neon deploy --env .env.production"
+  },
+  "dependencies": {
+    "@neon/config": "^1.9.4",
+    "@neon/env": "^1.6.5",
+    "@neon/functions": "^0.11.0",
+    "hono": "^4.13.14",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.16",
+    "@types/pg": "^8.23.1"
+  }
+}

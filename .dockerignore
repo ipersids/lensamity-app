@@ -1,3 +1,13 @@
 .gitignore
 infra/*
 *.md
+
+.env
+.env.*
+
+client-web/.pnpm-store/
+infra/rustfs/data
+infra/rustfs/logs
+.neon
+node_modules/
+bin/
