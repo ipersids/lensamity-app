@@ -10,6 +10,7 @@ import (
 type Config struct {
 	SessionSecret string
 	DatabaseURL   string
+	APIPort       string
 	S3            storage.Config
 }
 
@@ -32,6 +33,7 @@ func Load() (Config, error) {
 	return Config{
 		SessionSecret: secret,
 		DatabaseURL:   dbURL,
+		APIPort:       withDefault("API_PORT", "8080"),
 		S3:            confS3,
 	}, nil
 }
