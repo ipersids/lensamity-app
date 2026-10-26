@@ -45,8 +45,7 @@ services:
       - ./client-web/tsconfig.node.json:/usr/src/app/tsconfig.node.json
 
   db:
-    build:
-      dockerfile: server/build/dev/db.Dockerfile
+    image: postgres:18-alpine
     container_name: ${POSTGRES_CONTAINER_NAME:-db}
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -54,16 +53,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-test}
     expose:
       - "${POSTGRES_PORT:-5432}"
-    command:
-      [
-        "postgres",
-        "-p",
-        "${POSTGRES_PORT:-5432}",
-        "-c",
-        "shared_preload_libraries=pg_cron",
-        "-c",
-        "cron.database_name=${POSTGRES_DB:-test}",
-      ]
     volumes:
       - data:/var/lib/postgresql
     healthcheck:
