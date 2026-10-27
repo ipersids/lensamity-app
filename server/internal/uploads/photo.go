@@ -451,6 +451,7 @@ func (ps *PhotoService) UploadAvatarComplete(ctx context.Context, p UploadAvatar
 		return fail("file_too_large", ErrFileTooLarge, true)
 	}
 	contentType, _, err := normalizeImageContentType(headData.ContentType)
+	slog.Info("head object", "content_type", headData.ContentType, "size", headData.Size)
 	if err != nil {
 		return fail("unsupported_content_type", err, true)
 	}

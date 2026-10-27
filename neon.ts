@@ -33,4 +33,13 @@ export default defineConfig({
     // Existing branch: no changes
     return {};
   },
+
+  buckets: {
+    test: {
+      access: "private",
+    },
+    "lensamity-prod": {
+      access: "private",
+    },
+  },
 });

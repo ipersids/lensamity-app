@@ -7,6 +7,7 @@ import (
 	"io"
 	"lensamity/internal/db"
 	"lensamity/internal/storage"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -45,6 +46,7 @@ type presignPutObjectParams struct {
 }
 
 func (r *uploadRepository) presignPostObject(ctx context.Context, p presignPutObjectParams) (*s3.PresignedPostRequest, error) {
+	slog.Info("presignPostObject", "content_type", p.ContentType)
 	req, err := r.s3.Presign.PresignPostObject(
 		ctx,
 		&s3.PutObjectInput{
@@ -56,6 +58,7 @@ func (r *uploadRepository) presignPostObject(ctx context.Context, p presignPutOb
 			options.Expires = time.Until(p.ExpiresAt)
 			options.Conditions = []any{
 				[]any{"content-length-range", 1, p.MaxSize},
+				map[string]string{"Content-Type": p.ContentType},
 			}
 		})
 	if err != nil {
