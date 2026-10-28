@@ -213,9 +213,8 @@ func (ps *PhotoService) UploadPhotoComplete(ctx context.Context, p UploadPhotoCo
 	}
 
 	if err := ps.repo.completePendingPhotoUpload(ctx, completePendingPhotoUploadParams{
-		ID:                 p.ID,
-		OwnerUserID:        p.OwnerUserID,
-		ObjectKeyProcessed: []byte("{}"),
+		ID:          p.ID,
+		OwnerUserID: p.OwnerUserID,
 	}); err != nil {
 		return fmt.Errorf("%w: complete photo upload: mark ready: %w", ErrInternal, err)
 	}

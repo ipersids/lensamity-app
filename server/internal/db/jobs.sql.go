@@ -32,24 +32,29 @@ func (q *Queries) CompleteStorageDeletionJobIfDue(ctx context.Context, arg Compl
 }
 
 const insertIntoStorageDeletionJobs = `-- name: InsertIntoStorageDeletionJobs :exec
+WITH object_to_delete AS (
+  SELECT $1::VARCHAR(63) AS bucket,
+         $2::TEXT AS object_key
+)
 INSERT INTO storage_deletion_jobs (bucket, object_key, next_attempt_at)
-SELECT $1,
-       $2,
+SELECT object_to_delete.bucket,
+       object_to_delete.object_key,
        GREATEST(
          now(),
          COALESCE((
            SELECT p.expires_at + interval '5 minutes'
            FROM photos AS p
-           WHERE p.bucket = $1
-             AND p.object_key_original = $2
+           WHERE p.bucket = object_to_delete.bucket
+             AND p.object_key_original = object_to_delete.object_key
          ), now()),
          COALESCE((
            SELECT a.expires_at + interval '5 minutes'
            FROM avatar_uploads AS a
-           WHERE a.bucket = $1
-             AND a.object_key = $2
+           WHERE a.bucket = object_to_delete.bucket
+             AND a.object_key = object_to_delete.object_key
          ), now())
        )
+FROM object_to_delete
 ON CONFLICT (bucket, object_key) WHERE completed_at IS NULL
 DO UPDATE SET next_attempt_at = GREATEST(
   storage_deletion_jobs.next_attempt_at,

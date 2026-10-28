@@ -376,26 +376,23 @@ UPDATE photos
   SET status = 'ready',
       uploaded_at = now(),
       processed_at = now(),
-      object_key_processed = $1,
-      width = $2,
-      height = $3
-WHERE id = $4
-  AND owner_user_id = $5
+      width = $1,
+      height = $2
+WHERE id = $3
+  AND owner_user_id = $4
   AND status = 'processing'
 RETURNING id
 `
 
 type MarkProcessedPhotoUploadRecordCompletedParams struct {
-	ObjectKeyProcessed []byte
-	Width              pgtype.Int4
-	Height             pgtype.Int4
-	ID                 uuid.UUID
-	OwnerUserID        uuid.UUID
+	Width       pgtype.Int4
+	Height      pgtype.Int4
+	ID          uuid.UUID
+	OwnerUserID uuid.UUID
 }
 
 func (q *Queries) MarkProcessedPhotoUploadRecordCompleted(ctx context.Context, arg MarkProcessedPhotoUploadRecordCompletedParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, markProcessedPhotoUploadRecordCompleted,
-		arg.ObjectKeyProcessed,
 		arg.Width,
 		arg.Height,
 		arg.ID,

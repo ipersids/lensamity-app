@@ -44,7 +44,6 @@ UPDATE photos
   SET status = 'ready',
       uploaded_at = now(),
       processed_at = now(),
-      object_key_processed = sqlc.arg(object_key_processed),
       width = sqlc.arg(width),
       height = sqlc.arg(height)
 WHERE id = sqlc.arg(id)

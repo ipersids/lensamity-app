@@ -351,18 +351,16 @@ func (r *uploadRepository) pendingPhotoUpload(ctx context.Context, p pendingPhot
 }
 
 type completePendingPhotoUploadParams struct {
-	ID                 uuid.UUID
-	OwnerUserID        uuid.UUID
-	ObjectKeyProcessed []byte
-	Width              int32
-	Height             int32
+	ID          uuid.UUID
+	OwnerUserID uuid.UUID
+	Width       int32
+	Height      int32
 }
 
 func (r *uploadRepository) completePendingPhotoUpload(ctx context.Context, p completePendingPhotoUploadParams) error {
 	queryParams := db.MarkProcessedPhotoUploadRecordCompletedParams{
-		ID:                 p.ID,
-		OwnerUserID:        p.OwnerUserID,
-		ObjectKeyProcessed: p.ObjectKeyProcessed,
+		ID:          p.ID,
+		OwnerUserID: p.OwnerUserID,
 		Width: pgtype.Int4{
 			Int32: p.Width,
 			Valid: p.Width > 0 && p.Height > 0,

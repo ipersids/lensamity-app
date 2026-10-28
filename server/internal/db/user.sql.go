@@ -239,7 +239,7 @@ func (q *Queries) GetUserProfile(ctx context.Context, usernameKey string) (GetUs
 }
 
 const listUserPhotosAfterCursor = `-- name: ListUserPhotosAfterCursor :many
-SELECT photos.id, photos.owner_user_id, photos.status, photos.failure_reason, photos.bucket, photos.object_key_original, photos.object_key_processed, photos.content_type, photos.size, photos.width, photos.height, photos.photo_date, photos.title, photos.description, photos.created_at, photos.uploaded_at, photos.processed_at, photos.expires_at, photos.deleted_at
+SELECT photos.id, photos.owner_user_id, photos.status, photos.failure_reason, photos.bucket, photos.object_key_original, photos.content_type, photos.size, photos.width, photos.height, photos.photo_date, photos.title, photos.description, photos.created_at, photos.uploaded_at, photos.processed_at, photos.expires_at, photos.deleted_at
 FROM photos
 WHERE owner_user_id = $1
   AND status = 'ready'
@@ -277,7 +277,6 @@ func (q *Queries) ListUserPhotosAfterCursor(ctx context.Context, arg ListUserPho
 			&i.FailureReason,
 			&i.Bucket,
 			&i.ObjectKeyOriginal,
-			&i.ObjectKeyProcessed,
 			&i.ContentType,
 			&i.Size,
 			&i.Width,
@@ -302,7 +301,7 @@ func (q *Queries) ListUserPhotosAfterCursor(ctx context.Context, arg ListUserPho
 }
 
 const listUserPhotosFirstPage = `-- name: ListUserPhotosFirstPage :many
-SELECT photos.id, photos.owner_user_id, photos.status, photos.failure_reason, photos.bucket, photos.object_key_original, photos.object_key_processed, photos.content_type, photos.size, photos.width, photos.height, photos.photo_date, photos.title, photos.description, photos.created_at, photos.uploaded_at, photos.processed_at, photos.expires_at, photos.deleted_at
+SELECT photos.id, photos.owner_user_id, photos.status, photos.failure_reason, photos.bucket, photos.object_key_original, photos.content_type, photos.size, photos.width, photos.height, photos.photo_date, photos.title, photos.description, photos.created_at, photos.uploaded_at, photos.processed_at, photos.expires_at, photos.deleted_at
 FROM photos
 WHERE owner_user_id = $1
   AND status = 'ready'
@@ -332,7 +331,6 @@ func (q *Queries) ListUserPhotosFirstPage(ctx context.Context, arg ListUserPhoto
 			&i.FailureReason,
 			&i.Bucket,
 			&i.ObjectKeyOriginal,
-			&i.ObjectKeyProcessed,
 			&i.ContentType,
 			&i.Size,
 			&i.Width,
