@@ -21,7 +21,7 @@ export default defineConfig({
       type: "schedule",
       function: "cleanup",
       functionPath: "/storage-cleanup",
-      cron: "0 * * * *",
+      cron: "0 4 * * *",
     },
   },
 
@@ -41,10 +41,7 @@ export default defineConfig({
   },
 
   buckets: {
-    test: {
-      access: "private",
-    },
-    "lensamity-prod": {
+    lensamity: {
       access: "private",
     },
   },
