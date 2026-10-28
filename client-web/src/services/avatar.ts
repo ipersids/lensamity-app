@@ -33,7 +33,6 @@ const uploadFile = async (intent: UploadAvatarIntentResponse, file: File): Promi
     form.append(key, value);
   }
 
-  form.append("content-type", file.type);
   form.append("file", file);
 
   await axios.request({

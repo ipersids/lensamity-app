@@ -34,7 +34,6 @@ const uploadFile = async (intent: UploadIntentResponse, file: File): Promise<voi
     form.append(key, value);
   }
 
-  form.append("content-type", file.type);
   form.append("file", file);
 
   await axios.request({

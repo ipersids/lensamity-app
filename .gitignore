@@ -7,3 +7,4 @@ infra/rustfs/logs
 .neon
 node_modules/
 bin/
+tmp.*
