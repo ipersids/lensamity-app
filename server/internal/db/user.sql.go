@@ -238,41 +238,6 @@ func (q *Queries) GetUserProfile(ctx context.Context, usernameKey string) (GetUs
 	return i, err
 }
 
-const listUserAllImages = `-- name: ListUserAllImages :many
-SELECT p.bucket, p.object_key_original
-FROM photos p
-WHERE p.owner_user_id = $1
-UNION ALL
-SELECT a.bucket, a.object_key AS object_key_original
-FROM user_avatars a
-WHERE a.user_id = $1
-`
-
-type ListUserAllImagesRow struct {
-	Bucket            string
-	ObjectKeyOriginal string
-}
-
-func (q *Queries) ListUserAllImages(ctx context.Context, userID uuid.UUID) ([]ListUserAllImagesRow, error) {
-	rows, err := q.db.Query(ctx, listUserAllImages, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListUserAllImagesRow
-	for rows.Next() {
-		var i ListUserAllImagesRow
-		if err := rows.Scan(&i.Bucket, &i.ObjectKeyOriginal); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listUserPhotosAfterCursor = `-- name: ListUserPhotosAfterCursor :many
 SELECT photos.id, photos.owner_user_id, photos.status, photos.failure_reason, photos.bucket, photos.object_key_original, photos.object_key_processed, photos.content_type, photos.size, photos.width, photos.height, photos.photo_date, photos.title, photos.description, photos.created_at, photos.uploaded_at, photos.processed_at, photos.expires_at, photos.deleted_at
 FROM photos
@@ -389,6 +354,17 @@ func (q *Queries) ListUserPhotosFirstPage(ctx context.Context, arg ListUserPhoto
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockUserForDeletion = `-- name: LockUserForDeletion :one
+SELECT id FROM users WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) LockUserForDeletion(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockUserForDeletion, userID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const updatePasswordHash = `-- name: UpdatePasswordHash :one

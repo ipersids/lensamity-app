@@ -189,12 +189,13 @@ func (q *Queries) MarkAvatarUploadDeleted(ctx context.Context, arg MarkAvatarUpl
 	return err
 }
 
-const markAvatarUploadFailed = `-- name: MarkAvatarUploadFailed :exec
+const markAvatarUploadFailed = `-- name: MarkAvatarUploadFailed :one
 UPDATE avatar_uploads
 SET status = 'failed', failure_reason = $1
 WHERE id = $2
   AND user_id = $3
   AND status = 'processing'
+RETURNING bucket, object_key
 `
 
 type MarkAvatarUploadFailedParams struct {
@@ -203,9 +204,16 @@ type MarkAvatarUploadFailedParams struct {
 	UserID        uuid.UUID
 }
 
-func (q *Queries) MarkAvatarUploadFailed(ctx context.Context, arg MarkAvatarUploadFailedParams) error {
-	_, err := q.db.Exec(ctx, markAvatarUploadFailed, arg.FailureReason, arg.ID, arg.UserID)
-	return err
+type MarkAvatarUploadFailedRow struct {
+	Bucket    string
+	ObjectKey string
+}
+
+func (q *Queries) MarkAvatarUploadFailed(ctx context.Context, arg MarkAvatarUploadFailedParams) (MarkAvatarUploadFailedRow, error) {
+	row := q.db.QueryRow(ctx, markAvatarUploadFailed, arg.FailureReason, arg.ID, arg.UserID)
+	var i MarkAvatarUploadFailedRow
+	err := row.Scan(&i.Bucket, &i.ObjectKey)
+	return i, err
 }
 
 const markAvatarUploadProcessing = `-- name: MarkAvatarUploadProcessing :one
@@ -292,6 +300,7 @@ UPDATE photos
       deleted_at = now()
 WHERE id = $1
   AND owner_user_id = $2
+  AND deleted_at IS NULL
 RETURNING id, bucket, object_key_original
 `
 
@@ -399,12 +408,12 @@ func (q *Queries) MarkProcessedPhotoUploadRecordCompleted(ctx context.Context, a
 
 const markProcessedPhotoUploadRecordFailed = `-- name: MarkProcessedPhotoUploadRecordFailed :one
 UPDATE photos
-  SET status = 'failed',
-      failure_reason = $1
+SET status = 'failed',
+    failure_reason = $1
 WHERE id = $2
   AND owner_user_id = $3
   AND status = 'processing'
-RETURNING id
+RETURNING bucket, object_key_original
 `
 
 type MarkProcessedPhotoUploadRecordFailedParams struct {
@@ -413,11 +422,16 @@ type MarkProcessedPhotoUploadRecordFailedParams struct {
 	OwnerUserID   uuid.UUID
 }
 
-func (q *Queries) MarkProcessedPhotoUploadRecordFailed(ctx context.Context, arg MarkProcessedPhotoUploadRecordFailedParams) (uuid.UUID, error) {
+type MarkProcessedPhotoUploadRecordFailedRow struct {
+	Bucket            string
+	ObjectKeyOriginal string
+}
+
+func (q *Queries) MarkProcessedPhotoUploadRecordFailed(ctx context.Context, arg MarkProcessedPhotoUploadRecordFailedParams) (MarkProcessedPhotoUploadRecordFailedRow, error) {
 	row := q.db.QueryRow(ctx, markProcessedPhotoUploadRecordFailed, arg.FailureReason, arg.ID, arg.OwnerUserID)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
+	var i MarkProcessedPhotoUploadRecordFailedRow
+	err := row.Scan(&i.Bucket, &i.ObjectKeyOriginal)
+	return i, err
 }
 
 const upsertCurrentAvatar = `-- name: UpsertCurrentAvatar :exec

@@ -106,6 +106,18 @@ type Session struct {
 	RevokedAt         pgtype.Timestamptz
 }
 
+type StorageDeletionJob struct {
+	ID            uuid.UUID
+	Bucket        string
+	ObjectKey     string
+	Attempts      int32
+	NextAttemptAt time.Time
+	ClaimedUntil  pgtype.Timestamptz
+	LastError     pgtype.Text
+	CreatedAt     time.Time
+	CompletedAt   pgtype.Timestamptz
+}
+
 type User struct {
 	ID                uuid.UUID
 	UsernameKey       string

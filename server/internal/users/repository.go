@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"lensamity/internal/db"
 	"lensamity/internal/storage"
-	"log/slog"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -159,80 +157,33 @@ func (r *usersRepository) updateUsername(ctx context.Context, userID uuid.UUID, 
 }
 
 func (r *usersRepository) deleteProfile(ctx context.Context, userID uuid.UUID) error {
-	err := r.store.Queries.DeleteProfile(ctx, userID)
+	tx, err := r.store.Pool.Begin(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin profile deletion: %w", err)
 	}
-	return nil
-}
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
-func (r *usersRepository) photosKeys(ctx context.Context, userID uuid.UUID) (map[string][]types.ObjectIdentifier, error) {
-	res := make(map[string][]types.ObjectIdentifier)
-	rows, err := r.store.Queries.ListUserAllImages(ctx, userID)
-	if err != nil {
+	q := r.store.Queries.WithTx(tx)
+	if _, err := q.LockUserForDeletion(ctx, userID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return res, nil
+			return nil
 		}
-		return nil, err
+		return fmt.Errorf("lock profile for deletion: %w", err)
 	}
-
-	for _, row := range rows {
-		res[row.Bucket] = append(res[row.Bucket], types.ObjectIdentifier{Key: &row.ObjectKeyOriginal})
-	}
-
-	return res, nil
-}
-
-func (r *usersRepository) deleteObjects(
-	ctx context.Context,
-	bucket string,
-	objects []types.ObjectIdentifier,
-) error {
-	if len(objects) == 0 {
-		return nil
-	}
-
-	if len(objects) > 1000 {
-		return fmt.Errorf("S3 DeleteObjects accepts at most 1000 objects, got %d", len(objects))
-	}
-
-	delOut, err := r.s3.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
-		Bucket: aws.String(bucket),
-		Delete: &types.Delete{
-			Objects: objects,
-			Quiet:   aws.Bool(true),
-		},
-	})
+	queued, err := q.QueueUserObjectsForDeletion(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("delete objects from bucket %q: %w", bucket, err)
+		return fmt.Errorf("queue profile objects for deletion: %w", err)
 	}
-
-	if len(delOut.Errors) == 0 {
-		return nil
+	if err := q.DeleteProfile(ctx, userID); err != nil {
+		return fmt.Errorf("delete profile record: %w", err)
 	}
-
-	deleteErrors := make([]error, 0, len(delOut.Errors))
-
-	for _, deleteErr := range delOut.Errors {
-		key := aws.ToString(deleteErr.Key)
-		code := aws.ToString(deleteErr.Code)
-		message := aws.ToString(deleteErr.Message)
-
-		slog.Error(
-			"S3 could not delete object",
-			"bucket", bucket,
-			"key", key,
-			"code", code,
-			"message", message,
-		)
-
-		deleteErrors = append(deleteErrors, fmt.Errorf("%s: %s", key, message))
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit profile deletion: %w", err)
 	}
-
-	return fmt.Errorf(
-		"could not delete %d object(s) from bucket %q: %w",
-		len(deleteErrors),
-		bucket,
-		errors.Join(deleteErrors...),
-	)
+	objects := make([]storage.Object, 0, len(queued))
+	for _, job := range queued {
+		objects = append(objects, storage.Object{Bucket: job.Bucket, Key: job.ObjectKey})
+	}
+	storage.DeleteNow(ctx, r.store, r.s3.Client, objects)
+	return nil
 }

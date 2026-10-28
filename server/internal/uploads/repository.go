@@ -23,6 +23,10 @@ type uploadRepository struct {
 	s3    *storage.Client
 }
 
+func (r *uploadRepository) deleteQueuedObjectNow(ctx context.Context, bucket, key string) {
+	storage.DeleteNow(ctx, r.store, r.s3.Client, []storage.Object{{Bucket: bucket, Key: key}})
+}
+
 func newUploadRepository(store *db.Store, s3 *storage.Client) (*uploadRepository, error) {
 	if store == nil || store.Queries == nil || store.Pool == nil {
 		return nil, errors.New("new photo repository: nil postgres store")
@@ -101,20 +105,6 @@ func (r *uploadRepository) getObject(ctx context.Context, bucket string, key str
 	}
 
 	return object.Body, nil
-}
-
-func (r *uploadRepository) deleteObject(ctx context.Context, bucket string, key string) error {
-	_, err := r.s3.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		if storage.IsObjectNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("s3 delete object: %w", err)
-	}
-	return nil
 }
 
 type createPendingPhotoUploadParams struct {
@@ -204,12 +194,6 @@ type pendingAvatarUploadData struct {
 	Size        int64
 }
 
-type avatarObjectData struct {
-	OwnerUserID uuid.UUID
-	Bucket      string
-	Key         string
-}
-
 func (r *uploadRepository) pendingAvatarUpload(ctx context.Context, p pendingAvatarUploadParams) (*pendingAvatarUploadData, error) {
 	row, err := r.store.Queries.MarkAvatarUploadProcessing(ctx, db.MarkAvatarUploadProcessingParams{
 		ID:     p.ID,
@@ -244,7 +228,14 @@ type failPendingAvatarUploadParams struct {
 }
 
 func (r *uploadRepository) failPendingAvatarUpload(ctx context.Context, p failPendingAvatarUploadParams) error {
-	err := r.store.Queries.MarkAvatarUploadFailed(ctx, db.MarkAvatarUploadFailedParams{
+	tx, err := r.store.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin avatar upload failure: %w", err)
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+
+	q := r.store.Queries.WithTx(tx)
+	row, err := q.MarkAvatarUploadFailed(ctx, db.MarkAvatarUploadFailedParams{
 		ID:     p.ID,
 		UserID: p.OwnerUserID,
 		FailureReason: pgtype.Text{
@@ -255,33 +246,44 @@ func (r *uploadRepository) failPendingAvatarUpload(ctx context.Context, p failPe
 	if err != nil {
 		return fmt.Errorf("mark avatar upload failed: %w", err)
 	}
+	if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
+		Bucket: row.Bucket, ObjectKey: row.ObjectKey,
+	}); err != nil {
+		return fmt.Errorf("queue failed avatar upload for deletion: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit avatar upload failure: %w", err)
+	}
+
+	r.deleteQueuedObjectNow(ctx, row.Bucket, row.ObjectKey)
 	return nil
 }
 
-func (r *uploadRepository) promoteAvatarUpload(ctx context.Context, p pendingAvatarUploadData) (*db.UserAvatar, error) {
+func (r *uploadRepository) promoteAvatarUpload(ctx context.Context, p pendingAvatarUploadData) error {
 	tx, err := r.store.Pool.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("begin avatar promotion: %w", err)
+		return fmt.Errorf("begin avatar promotion: %w", err)
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	q := r.store.Queries.WithTx(tx)
 	previous, err := q.GetCurrentAvatarForUpdate(ctx, p.OwnerUserID)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("lock current avatar: %w", err)
+		return fmt.Errorf("lock current avatar: %w", err)
 	}
-	if err == nil {
+	hasPrevious := err == nil
+	if hasPrevious {
 		if err := q.MarkAvatarUploadSuperseded(ctx, db.MarkAvatarUploadSupersededParams{
 			UserID:    p.OwnerUserID,
 			Bucket:    previous.Bucket,
 			ObjectKey: previous.ObjectKey,
 		}); err != nil {
-			return nil, fmt.Errorf("mark replaced avatar upload superseded: %w", err)
+			return fmt.Errorf("mark replaced avatar upload superseded: %w", err)
 		}
 	}
 
 	if err := q.MarkAvatarUploadReady(ctx, db.MarkAvatarUploadReadyParams{ID: p.ID, UserID: p.OwnerUserID}); err != nil {
-		return nil, fmt.Errorf("mark avatar upload ready: %w", err)
+		return fmt.Errorf("mark avatar upload ready: %w", err)
 	}
 	if err := q.UpsertCurrentAvatar(ctx, db.UpsertCurrentAvatarParams{
 		UserID:      p.OwnerUserID,
@@ -290,25 +292,23 @@ func (r *uploadRepository) promoteAvatarUpload(ctx context.Context, p pendingAva
 		ContentType: p.ContentType,
 		Size:        p.Size,
 	}); err != nil {
-		return nil, fmt.Errorf("set current avatar: %w", err)
+		return fmt.Errorf("set current avatar: %w", err)
 	}
+
+	if hasPrevious && (previous.Bucket != p.Bucket || previous.ObjectKey != p.Key) {
+		if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
+			Bucket:    previous.Bucket,
+			ObjectKey: previous.ObjectKey,
+		}); err != nil {
+			return fmt.Errorf("queue previous avatar for deletion: %w", err)
+		}
+	}
+
 	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("commit avatar promotion: %w", err)
+		return fmt.Errorf("commit avatar promotion: %w", err)
 	}
-
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	return &previous, nil
-}
-
-func (r *uploadRepository) markAvatarUploadDeleted(ctx context.Context, p avatarObjectData) error {
-	if err := r.store.Queries.MarkAvatarUploadDeleted(ctx, db.MarkAvatarUploadDeletedParams{
-		UserID:    p.OwnerUserID,
-		Bucket:    p.Bucket,
-		ObjectKey: p.Key,
-	}); err != nil {
-		return fmt.Errorf("mark avatar upload deleted: %w", err)
+	if hasPrevious && (previous.Bucket != p.Bucket || previous.ObjectKey != p.Key) {
+		r.deleteQueuedObjectNow(ctx, previous.Bucket, previous.ObjectKey)
 	}
 	return nil
 }
@@ -387,7 +387,14 @@ type failPendingPhotoUploadParams struct {
 }
 
 func (r *uploadRepository) failPendingPhotoUpload(ctx context.Context, p failPendingPhotoUploadParams) error {
-	_, err := r.store.Queries.MarkProcessedPhotoUploadRecordFailed(ctx, db.MarkProcessedPhotoUploadRecordFailedParams{
+	tx, err := r.store.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin photo upload failure: %w", err)
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+
+	q := r.store.Queries.WithTx(tx)
+	row, err := q.MarkProcessedPhotoUploadRecordFailed(ctx, db.MarkProcessedPhotoUploadRecordFailedParams{
 		ID:          p.ID,
 		OwnerUserID: p.OwnerUserID,
 		FailureReason: pgtype.Text{
@@ -396,8 +403,18 @@ func (r *uploadRepository) failPendingPhotoUpload(ctx context.Context, p failPen
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("failPendingPhotoUpload: %w", err)
+		return fmt.Errorf("mark photo upload failed: %w", err)
 	}
+	if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
+		Bucket: row.Bucket, ObjectKey: row.ObjectKeyOriginal,
+	}); err != nil {
+		return fmt.Errorf("queue failed photo upload for deletion: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit photo upload failure: %w", err)
+	}
+
+	r.deleteQueuedObjectNow(ctx, row.Bucket, row.ObjectKeyOriginal)
 	return nil
 }
 
@@ -417,43 +434,56 @@ func (r *uploadRepository) deletePhotoRecord(ctx context.Context, p deletePhotoR
 
 	row, err := q.MarkPhotoRecordDeleted(ctx, db.MarkPhotoRecordDeletedParams{PhotoID: p.PhotoID, OwnerUserID: p.OwnerUserID})
 	if err != nil {
-		return err
+		return fmt.Errorf("mark photo deleted: %w", err)
 	}
 
-	if err := r.deleteObject(ctx, row.Bucket, row.ObjectKeyOriginal); err != nil {
-		return err
+	if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
+		Bucket:    row.Bucket,
+		ObjectKey: row.ObjectKeyOriginal,
+	}); err != nil {
+		return fmt.Errorf("queue photo for deletion: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return err
+		return fmt.Errorf("commit photo deletion: %w", err)
 	}
+	r.deleteQueuedObjectNow(ctx, row.Bucket, row.ObjectKeyOriginal)
 
 	return nil
 }
 
-func (r *uploadRepository) deleteAvatar(ctx context.Context, userID uuid.UUID) (*avatarObjectData, error) {
+func (r *uploadRepository) deleteAvatar(ctx context.Context, userID uuid.UUID) error {
 	tx, err := r.store.Pool.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("begin avatar deletion: %w", err)
+		return fmt.Errorf("begin avatar deletion: %w", err)
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
 
-	avatar, err := r.store.Queries.WithTx(tx).DeleteCurrentAvatar(ctx, userID)
+	q := r.store.Queries.WithTx(tx)
+	avatar, err := q.DeleteCurrentAvatar(ctx, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
+			return nil
 		}
-		return nil, fmt.Errorf("delete current avatar record: %w", err)
+		return fmt.Errorf("delete current avatar record: %w", err)
 	}
-	if err := r.store.Queries.WithTx(tx).MarkAvatarUploadSuperseded(ctx, db.MarkAvatarUploadSupersededParams{
+	if err := q.MarkAvatarUploadDeleted(ctx, db.MarkAvatarUploadDeletedParams{
 		UserID:    userID,
 		Bucket:    avatar.Bucket,
 		ObjectKey: avatar.ObjectKey,
 	}); err != nil {
-		return nil, fmt.Errorf("mark deleted avatar upload superseded: %w", err)
+		return fmt.Errorf("mark avatar upload deleted: %w", err)
 	}
+	if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
+		Bucket:    avatar.Bucket,
+		ObjectKey: avatar.ObjectKey,
+	}); err != nil {
+		return fmt.Errorf("queue avatar for deletion: %w", err)
+	}
+
 	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("commit avatar deletion: %w", err)
+		return fmt.Errorf("commit avatar deletion: %w", err)
 	}
-	return &avatarObjectData{OwnerUserID: userID, Bucket: avatar.Bucket, Key: avatar.ObjectKey}, nil
+	r.deleteQueuedObjectNow(ctx, avatar.Bucket, avatar.ObjectKey)
+	return nil
 }

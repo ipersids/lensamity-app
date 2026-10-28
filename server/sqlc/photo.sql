@@ -54,12 +54,12 @@ RETURNING id;
 
 -- name: MarkProcessedPhotoUploadRecordFailed :one
 UPDATE photos
-  SET status = 'failed',
-      failure_reason = sqlc.arg(failure_reason)
+SET status = 'failed',
+    failure_reason = sqlc.arg(failure_reason)
 WHERE id = sqlc.arg(id)
   AND owner_user_id = sqlc.arg(owner_user_id)
   AND status = 'processing'
-RETURNING id;
+RETURNING bucket, object_key_original;
 
 -- name: MarkPhotoRecordDeleted :one
 UPDATE photos
@@ -67,6 +67,7 @@ UPDATE photos
       deleted_at = now()
 WHERE id = sqlc.arg(photo_id)
   AND owner_user_id = sqlc.arg(owner_user_id)
+  AND deleted_at IS NULL
 RETURNING id, bucket, object_key_original;
 
 -- name: CreatePendingAvatarUpload :exec
@@ -103,12 +104,13 @@ FROM avatar_uploads
 WHERE id = sqlc.arg(id)
   AND user_id = sqlc.arg(user_id);
 
--- name: MarkAvatarUploadFailed :exec
+-- name: MarkAvatarUploadFailed :one
 UPDATE avatar_uploads
 SET status = 'failed', failure_reason = sqlc.arg(failure_reason)
 WHERE id = sqlc.arg(id)
   AND user_id = sqlc.arg(user_id)
-  AND status = 'processing';
+  AND status = 'processing'
+RETURNING bucket, object_key;
 
 -- name: GetCurrentAvatarForUpdate :one
 SELECT user_id, bucket, object_key, content_type, uploaded_at, size
