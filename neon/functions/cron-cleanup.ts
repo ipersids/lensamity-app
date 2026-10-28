@@ -122,6 +122,17 @@ app.post("/storage-cleanup", async (c) => {
           failed,
         });
 
+        await pool.query(`
+          DELETE FROM storage_deletion_jobs
+          WHERE id IN (
+            SELECT id
+            FROM storage_deletion_jobs
+            WHERE completed_at < now() - interval '30 days'
+            ORDER BY completed_at, id
+            LIMIT 1000
+          )
+        `);
+
         return c.json({ ok: true, deleted, failed });
       }
 

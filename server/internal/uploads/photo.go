@@ -58,7 +58,6 @@ type photoStore interface {
 	failPendingPhotoUpload(ctx context.Context, p failPendingPhotoUploadParams) error
 	headObject(ctx context.Context, bucket string, key string) (*objectHeadData, error)
 	getObject(ctx context.Context, bucket string, key string) (io.ReadCloser, error)
-	deleteQueuedObjectNow(ctx context.Context, bucket, key string)
 	deletePhotoRecord(ctx context.Context, p deletePhotoRecordParams) error
 	deleteAvatar(ctx context.Context, userID uuid.UUID) error
 	createPendingAvatarUpload(ctx context.Context, p createPendingAvatarUploadParams) error
@@ -180,7 +179,6 @@ func (ps *PhotoService) UploadPhotoComplete(ctx context.Context, p UploadPhotoCo
 		}); err != nil {
 			return errors.Join(cause, fmt.Errorf("%w: mark photo upload failed: %w", ErrInternal, err))
 		}
-		ps.repo.deleteQueuedObjectNow(ctx, pendingUploadData.Bucket, pendingUploadData.Key)
 
 		return cause
 	}
@@ -409,7 +407,6 @@ func (ps *PhotoService) UploadAvatarComplete(ctx context.Context, p UploadAvatar
 		}); err != nil {
 			return errors.Join(cause, fmt.Errorf("%w: mark avatar upload failed: %w", ErrInternal, err))
 		}
-		ps.repo.deleteQueuedObjectNow(ctx, pendingUpload.Bucket, pendingUpload.Key)
 		return cause
 	}
 

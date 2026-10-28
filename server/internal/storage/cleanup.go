@@ -28,7 +28,7 @@ func DeleteNow(ctx context.Context, store *db.Store, client *s3.Client, objects 
 		return
 	}
 
-	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 	defer cancel()
 
 	byBucket := make(map[string][]string)
