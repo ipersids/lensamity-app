@@ -125,7 +125,7 @@ func main() {
 	handler := middleware.Logging(mux)
 
 	server := &http.Server{
-		Addr:         ":8080",
+		Addr:         ":" + conf.APIPort,
 		Handler:      handler,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

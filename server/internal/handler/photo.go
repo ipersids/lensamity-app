@@ -128,6 +128,9 @@ func (ph *PhotoHandler) UploadIntent(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, statusForPhotoError(err), "internal_error", "something went wrong")
 		return
 	}
+
+	res.PresignedRequest.Values["Content-Type"] = req.ContentType
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(UploadResponseBody{
@@ -298,6 +301,8 @@ func (ph *PhotoHandler) UploadAvatarIntent(w http.ResponseWriter, r *http.Reques
 		WriteError(w, statusForPhotoError(err), "internal_error", "something went wrong")
 		return
 	}
+
+	res.PresignedRequest.Values["Content-Type"] = req.ContentType
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

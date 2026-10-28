@@ -58,15 +58,13 @@ type photoStore interface {
 	failPendingPhotoUpload(ctx context.Context, p failPendingPhotoUploadParams) error
 	headObject(ctx context.Context, bucket string, key string) (*objectHeadData, error)
 	getObject(ctx context.Context, bucket string, key string) (io.ReadCloser, error)
-	deleteObject(ctx context.Context, bucket string, key string) error
 	deletePhotoRecord(ctx context.Context, p deletePhotoRecordParams) error
-	deleteAvatar(ctx context.Context, userID uuid.UUID) (*avatarObjectData, error)
+	deleteAvatar(ctx context.Context, userID uuid.UUID) error
 	createPendingAvatarUpload(ctx context.Context, p createPendingAvatarUploadParams) error
 	pendingAvatarUpload(ctx context.Context, p pendingAvatarUploadParams) (*pendingAvatarUploadData, error)
 	avatarUploadStatus(ctx context.Context, p pendingAvatarUploadParams) (string, error)
 	failPendingAvatarUpload(ctx context.Context, p failPendingAvatarUploadParams) error
-	promoteAvatarUpload(ctx context.Context, p pendingAvatarUploadData) (*db.UserAvatar, error)
-	markAvatarUploadDeleted(ctx context.Context, p avatarObjectData) error
+	promoteAvatarUpload(ctx context.Context, p pendingAvatarUploadData) error
 }
 
 func NewPhotoService(store *db.Store, s3Client *storage.Client) (*PhotoService, error) {
@@ -173,19 +171,13 @@ func (ps *PhotoService) UploadPhotoComplete(ctx context.Context, p UploadPhotoCo
 		return fmt.Errorf("%w: complete photo upload: unexpected status %s", ErrInternal, pendingUploadData.Status)
 	}
 
-	fail := func(reason string, cause error, deleteObject bool) error {
+	fail := func(reason string, cause error) error {
 		if err := ps.repo.failPendingPhotoUpload(ctx, failPendingPhotoUploadParams{
 			ID:          pendingUploadData.ID,
 			OwnerUserID: pendingUploadData.OwnerUserID,
 			Reason:      reason,
 		}); err != nil {
 			return errors.Join(cause, fmt.Errorf("%w: mark photo upload failed: %w", ErrInternal, err))
-		}
-
-		if deleteObject {
-			if err := ps.repo.deleteObject(ctx, pendingUploadData.Bucket, pendingUploadData.Key); err != nil {
-				return errors.Join(cause, fmt.Errorf("%w: delete failed photo upload object: %w", ErrInternal, err))
-			}
 		}
 
 		return cause
@@ -195,35 +187,34 @@ func (ps *PhotoService) UploadPhotoComplete(ctx context.Context, p UploadPhotoCo
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrUploadNotFound):
-			return fail("upload_not_found", err, false)
+			return fail("upload_not_found", err)
 		case errors.Is(err, ErrUploadMetadataMissing):
-			return fail("missing_object_metadata", err, true)
+			return fail("missing_object_metadata", err)
 		default:
-			return fail("head_object_failed", err, true)
+			return fail("head_object_failed", err)
 		}
 	}
 
 	if headData.Size != pendingUploadData.Size {
-		return fail("size_mismatch", ErrUploadSizeMismatch, true)
+		return fail("size_mismatch", ErrUploadSizeMismatch)
 	}
 	if headData.Size > maxImageBytes {
-		return fail("file_too_large", ErrFileTooLarge, true)
+		return fail("file_too_large", ErrFileTooLarge)
 	}
 
 	// @TODO: validate real bytes, check actual image type, dimension, and encode a processed webp
 
 	contentType, _, err := normalizeImageContentType(headData.ContentType)
 	if err != nil {
-		return fail("unsupported_content_type", err, true)
+		return fail("unsupported_content_type", err)
 	}
 	if contentType != pendingUploadData.ContentType {
-		return fail("content_type_mismatch", ErrUnsupportedFileType, true)
+		return fail("content_type_mismatch", ErrUnsupportedFileType)
 	}
 
 	if err := ps.repo.completePendingPhotoUpload(ctx, completePendingPhotoUploadParams{
-		ID:                 p.ID,
-		OwnerUserID:        p.OwnerUserID,
-		ObjectKeyProcessed: []byte("{}"),
+		ID:          p.ID,
+		OwnerUserID: p.OwnerUserID,
 	}); err != nil {
 		return fmt.Errorf("%w: complete photo upload: mark ready: %w", ErrInternal, err)
 	}
@@ -255,19 +246,8 @@ func (ps *PhotoService) DeleteAvatar(ctx context.Context, userID uuid.UUID) erro
 		return fmt.Errorf("%w: owner user id is required", ErrInternal)
 	}
 
-	avatar, err := ps.repo.deleteAvatar(ctx, userID)
-	if err != nil {
+	if err := ps.repo.deleteAvatar(ctx, userID); err != nil {
 		return fmt.Errorf("%w: delete avatar: %w", ErrInternal, err)
-	}
-	if avatar == nil {
-		return nil
-	}
-	if err := ps.repo.deleteObject(ctx, avatar.Bucket, avatar.Key); err != nil {
-		slog.Warn("delete avatar object", "error", err, "user_id", userID, "object_key", avatar.Key)
-		return nil
-	}
-	if err := ps.repo.markAvatarUploadDeleted(ctx, *avatar); err != nil {
-		slog.Warn("mark avatar upload deleted", "error", err, "user_id", userID, "object_key", avatar.Key)
 	}
 	return nil
 }
@@ -418,7 +398,7 @@ func (ps *PhotoService) UploadAvatarComplete(ctx context.Context, p UploadAvatar
 		return fmt.Errorf("%w: prepare avatar upload completion: %w", ErrInternal, err)
 	}
 
-	fail := func(reason string, cause error, deleteObject bool) error {
+	fail := func(reason string, cause error) error {
 		if err := ps.repo.failPendingAvatarUpload(ctx, failPendingAvatarUploadParams{
 			ID:          pendingUpload.ID,
 			OwnerUserID: pendingUpload.OwnerUserID,
@@ -426,64 +406,52 @@ func (ps *PhotoService) UploadAvatarComplete(ctx context.Context, p UploadAvatar
 		}); err != nil {
 			return errors.Join(cause, fmt.Errorf("%w: mark avatar upload failed: %w", ErrInternal, err))
 		}
-		if deleteObject {
-			if err := ps.repo.deleteObject(ctx, pendingUpload.Bucket, pendingUpload.Key); err != nil {
-				return errors.Join(cause, fmt.Errorf("%w: delete failed avatar upload object: %w", ErrInternal, err))
-			}
-		}
 		return cause
 	}
 
 	headData, err := ps.repo.headObject(ctx, pendingUpload.Bucket, pendingUpload.Key)
 	if err != nil {
 		if errors.Is(err, ErrUploadNotFound) {
-			return fail("upload_not_found", err, false)
+			return fail("upload_not_found", err)
 		}
 		if errors.Is(err, ErrUploadMetadataMissing) {
-			return fail("missing_object_metadata", err, true)
+			return fail("missing_object_metadata", err)
 		}
-		return fail("head_object_failed", err, true)
+		return fail("head_object_failed", err)
 	}
 	if headData.Size != pendingUpload.Size {
-		return fail("size_mismatch", ErrUploadSizeMismatch, true)
+		return fail("size_mismatch", ErrUploadSizeMismatch)
 	}
 	if headData.Size > maxAvatarBytes {
-		return fail("file_too_large", ErrFileTooLarge, true)
+		return fail("file_too_large", ErrFileTooLarge)
 	}
 	contentType, _, err := normalizeImageContentType(headData.ContentType)
+	slog.Info("head object", "content_type", headData.ContentType, "size", headData.Size)
 	if err != nil {
-		return fail("unsupported_content_type", err, true)
+		return fail("unsupported_content_type", err)
 	}
 	if contentType != pendingUpload.ContentType {
-		return fail("content_type_mismatch", ErrUnsupportedFileType, true)
+		return fail("content_type_mismatch", ErrUnsupportedFileType)
 	}
 
 	object, err := ps.repo.getObject(ctx, pendingUpload.Bucket, pendingUpload.Key)
 	if err != nil {
 		if errors.Is(err, ErrUploadNotFound) {
-			return fail("upload_not_found", err, false)
+			return fail("upload_not_found", err)
 		}
-		return fail("get_object_failed", err, true)
+		return fail("get_object_failed", err)
 	}
 
 	validationErr := validateAvatarImage(io.LimitReader(object, maxAvatarBytes+1), contentType)
 	if closeErr := object.Close(); closeErr != nil {
-		return fail("close_object_failed", fmt.Errorf("close avatar upload object: %w", closeErr), true)
+		return fail("close_object_failed", fmt.Errorf("close avatar upload object: %w", closeErr))
 	}
 	if validationErr != nil {
-		return fail(avatarImageFailureReason(validationErr), validationErr, true)
+		return fail(avatarImageFailureReason(validationErr), validationErr)
 	}
 
-	previous, err := ps.repo.promoteAvatarUpload(ctx, *pendingUpload)
-	if err != nil {
+	if err := ps.repo.promoteAvatarUpload(ctx, *pendingUpload); err != nil {
 		return fmt.Errorf("%w: promote avatar upload: %w", ErrInternal, err)
-	}
-	if previous != nil && (previous.Bucket != pendingUpload.Bucket || previous.ObjectKey != pendingUpload.Key) {
-		if err := ps.repo.deleteObject(ctx, previous.Bucket, previous.ObjectKey); err != nil {
-			slog.Warn("delete replaced avatar object", "error", err, "user_id", p.OwnerUserID, "object_key", previous.ObjectKey)
-		} else if err := ps.repo.markAvatarUploadDeleted(ctx, avatarObjectData{OwnerUserID: p.OwnerUserID, Bucket: previous.Bucket, Key: previous.ObjectKey}); err != nil {
-			slog.Warn("mark replaced avatar upload deleted", "error", err, "user_id", p.OwnerUserID, "object_key", previous.ObjectKey)
-		}
 	}
 
 	return nil

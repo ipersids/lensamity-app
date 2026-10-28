@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS photos (
 
   bucket VARCHAR(63) NOT NULL,
   object_key_original TEXT NOT NULL UNIQUE,
-  object_key_processed JSONB NOT NULL DEFAULT '{}'::jsonb,
 
   content_type TEXT NOT NULL,
   size BIGINT NOT NULL,

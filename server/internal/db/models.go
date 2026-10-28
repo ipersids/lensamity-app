@@ -76,25 +76,24 @@ type AvatarUpload struct {
 }
 
 type Photo struct {
-	ID                 uuid.UUID
-	OwnerUserID        uuid.UUID
-	Status             UploadStatus
-	FailureReason      pgtype.Text
-	Bucket             string
-	ObjectKeyOriginal  string
-	ObjectKeyProcessed []byte
-	ContentType        string
-	Size               int64
-	Width              pgtype.Int4
-	Height             pgtype.Int4
-	PhotoDate          pgtype.Date
-	Title              pgtype.Text
-	Description        pgtype.Text
-	CreatedAt          time.Time
-	UploadedAt         pgtype.Timestamptz
-	ProcessedAt        pgtype.Timestamptz
-	ExpiresAt          time.Time
-	DeletedAt          pgtype.Timestamptz
+	ID                uuid.UUID
+	OwnerUserID       uuid.UUID
+	Status            UploadStatus
+	FailureReason     pgtype.Text
+	Bucket            string
+	ObjectKeyOriginal string
+	ContentType       string
+	Size              int64
+	Width             pgtype.Int4
+	Height            pgtype.Int4
+	PhotoDate         pgtype.Date
+	Title             pgtype.Text
+	Description       pgtype.Text
+	CreatedAt         time.Time
+	UploadedAt        pgtype.Timestamptz
+	ProcessedAt       pgtype.Timestamptz
+	ExpiresAt         time.Time
+	DeletedAt         pgtype.Timestamptz
 }
 
 type Session struct {
@@ -104,6 +103,18 @@ type Session struct {
 	LastSeenAt        time.Time
 	AbsoluteExpiresAt time.Time
 	RevokedAt         pgtype.Timestamptz
+}
+
+type StorageDeletionJob struct {
+	ID            uuid.UUID
+	Bucket        string
+	ObjectKey     string
+	Attempts      int32
+	NextAttemptAt time.Time
+	ClaimedUntil  pgtype.Timestamptz
+	LastError     pgtype.Text
+	CreatedAt     time.Time
+	CompletedAt   pgtype.Timestamptz
 }
 
 type User struct {
