@@ -17,6 +17,12 @@ export default defineConfig({
       functionPath: "/session-cleanup",
       cron: "0 3 * * *",
     },
+    storage: {
+      type: "schedule",
+      function: "cleanup",
+      functionPath: "/storage-cleanup",
+      cron: "0 * * * *",
+    },
   },
 
   // Branch policy: per-branch tuning
