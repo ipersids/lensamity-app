@@ -246,9 +246,7 @@ func (r *uploadRepository) failPendingAvatarUpload(ctx context.Context, p failPe
 	if err != nil {
 		return fmt.Errorf("mark avatar upload failed: %w", err)
 	}
-	if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
-		Bucket: row.Bucket, ObjectKey: row.ObjectKey,
-	}); err != nil {
+	if err := q.QueueAvatarObjectForDeletion(ctx, p.ID); err != nil {
 		return fmt.Errorf("queue failed avatar upload for deletion: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -273,12 +271,16 @@ func (r *uploadRepository) promoteAvatarUpload(ctx context.Context, p pendingAva
 	}
 	hasPrevious := err == nil
 	if hasPrevious {
-		if err := q.MarkAvatarUploadSuperseded(ctx, db.MarkAvatarUploadSupersededParams{
+		supersededAvatarID, err := q.MarkAvatarUploadSuperseded(ctx, db.MarkAvatarUploadSupersededParams{
 			UserID:    p.OwnerUserID,
 			Bucket:    previous.Bucket,
 			ObjectKey: previous.ObjectKey,
-		}); err != nil {
+		})
+		if err != nil {
 			return fmt.Errorf("mark replaced avatar upload superseded: %w", err)
+		}
+		if err := q.QueueAvatarObjectForDeletion(ctx, supersededAvatarID); err != nil {
+			return fmt.Errorf("queue previous avatar for deletion: %w", err)
 		}
 	}
 
@@ -293,15 +295,6 @@ func (r *uploadRepository) promoteAvatarUpload(ctx context.Context, p pendingAva
 		Size:        p.Size,
 	}); err != nil {
 		return fmt.Errorf("set current avatar: %w", err)
-	}
-
-	if hasPrevious && (previous.Bucket != p.Bucket || previous.ObjectKey != p.Key) {
-		if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
-			Bucket:    previous.Bucket,
-			ObjectKey: previous.ObjectKey,
-		}); err != nil {
-			return fmt.Errorf("queue previous avatar for deletion: %w", err)
-		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -403,9 +396,7 @@ func (r *uploadRepository) failPendingPhotoUpload(ctx context.Context, p failPen
 	if err != nil {
 		return fmt.Errorf("mark photo upload failed: %w", err)
 	}
-	if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
-		Bucket: row.Bucket, ObjectKey: row.ObjectKeyOriginal,
-	}); err != nil {
+	if err := q.QueuePhotoObjectForDeletion(ctx, p.ID); err != nil {
 		return fmt.Errorf("queue failed photo upload for deletion: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -435,10 +426,7 @@ func (r *uploadRepository) deletePhotoRecord(ctx context.Context, p deletePhotoR
 		return fmt.Errorf("mark photo deleted: %w", err)
 	}
 
-	if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
-		Bucket:    row.Bucket,
-		ObjectKey: row.ObjectKeyOriginal,
-	}); err != nil {
+	if err := q.QueuePhotoObjectForDeletion(ctx, p.PhotoID); err != nil {
 		return fmt.Errorf("queue photo for deletion: %w", err)
 	}
 
@@ -465,17 +453,15 @@ func (r *uploadRepository) deleteAvatar(ctx context.Context, userID uuid.UUID) e
 		}
 		return fmt.Errorf("delete current avatar record: %w", err)
 	}
-	if err := q.MarkAvatarUploadDeleted(ctx, db.MarkAvatarUploadDeletedParams{
+	avatarUploadID, err := q.MarkAvatarUploadDeleted(ctx, db.MarkAvatarUploadDeletedParams{
 		UserID:    userID,
 		Bucket:    avatar.Bucket,
 		ObjectKey: avatar.ObjectKey,
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("mark avatar upload deleted: %w", err)
 	}
-	if err := q.InsertIntoStorageDeletionJobs(ctx, db.InsertIntoStorageDeletionJobsParams{
-		Bucket:    avatar.Bucket,
-		ObjectKey: avatar.ObjectKey,
-	}); err != nil {
+	if err := q.QueueAvatarObjectForDeletion(ctx, avatarUploadID); err != nil {
 		return fmt.Errorf("queue avatar for deletion: %w", err)
 	}
 

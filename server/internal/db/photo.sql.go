@@ -169,13 +169,14 @@ func (q *Queries) GetCurrentAvatarForUpdate(ctx context.Context, userID uuid.UUI
 	return i, err
 }
 
-const markAvatarUploadDeleted = `-- name: MarkAvatarUploadDeleted :exec
+const markAvatarUploadDeleted = `-- name: MarkAvatarUploadDeleted :one
 UPDATE avatar_uploads
 SET status = 'deleted', deleted_at = now()
 WHERE user_id = $1
   AND bucket = $2
   AND object_key = $3
   AND status IN ('ready', 'superseded')
+RETURNING id
 `
 
 type MarkAvatarUploadDeletedParams struct {
@@ -184,9 +185,11 @@ type MarkAvatarUploadDeletedParams struct {
 	ObjectKey string
 }
 
-func (q *Queries) MarkAvatarUploadDeleted(ctx context.Context, arg MarkAvatarUploadDeletedParams) error {
-	_, err := q.db.Exec(ctx, markAvatarUploadDeleted, arg.UserID, arg.Bucket, arg.ObjectKey)
-	return err
+func (q *Queries) MarkAvatarUploadDeleted(ctx context.Context, arg MarkAvatarUploadDeletedParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, markAvatarUploadDeleted, arg.UserID, arg.Bucket, arg.ObjectKey)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const markAvatarUploadFailed = `-- name: MarkAvatarUploadFailed :one
@@ -274,13 +277,14 @@ func (q *Queries) MarkAvatarUploadReady(ctx context.Context, arg MarkAvatarUploa
 	return err
 }
 
-const markAvatarUploadSuperseded = `-- name: MarkAvatarUploadSuperseded :exec
+const markAvatarUploadSuperseded = `-- name: MarkAvatarUploadSuperseded :one
 UPDATE avatar_uploads
 SET status = 'superseded', superseded_at = now()
 WHERE user_id = $1
   AND bucket = $2
   AND object_key = $3
   AND status = 'ready'
+RETURNING id
 `
 
 type MarkAvatarUploadSupersededParams struct {
@@ -289,9 +293,11 @@ type MarkAvatarUploadSupersededParams struct {
 	ObjectKey string
 }
 
-func (q *Queries) MarkAvatarUploadSuperseded(ctx context.Context, arg MarkAvatarUploadSupersededParams) error {
-	_, err := q.db.Exec(ctx, markAvatarUploadSuperseded, arg.UserID, arg.Bucket, arg.ObjectKey)
-	return err
+func (q *Queries) MarkAvatarUploadSuperseded(ctx context.Context, arg MarkAvatarUploadSupersededParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, markAvatarUploadSuperseded, arg.UserID, arg.Bucket, arg.ObjectKey)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const markPhotoRecordDeleted = `-- name: MarkPhotoRecordDeleted :one

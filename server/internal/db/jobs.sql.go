@@ -31,30 +31,13 @@ func (q *Queries) CompleteStorageDeletionJobIfDue(ctx context.Context, arg Compl
 	return err
 }
 
-const insertIntoStorageDeletionJobs = `-- name: InsertIntoStorageDeletionJobs :exec
-WITH object_to_delete AS (
-  SELECT $1::VARCHAR(63) AS bucket,
-         $2::TEXT AS object_key
-)
+const queueAvatarObjectForDeletion = `-- name: QueueAvatarObjectForDeletion :exec
 INSERT INTO storage_deletion_jobs (bucket, object_key, next_attempt_at)
-SELECT object_to_delete.bucket,
-       object_to_delete.object_key,
-       GREATEST(
-         now(),
-         COALESCE((
-           SELECT p.expires_at + interval '5 minutes'
-           FROM photos AS p
-           WHERE p.bucket = object_to_delete.bucket
-             AND p.object_key_original = object_to_delete.object_key
-         ), now()),
-         COALESCE((
-           SELECT a.expires_at + interval '5 minutes'
-           FROM avatar_uploads AS a
-           WHERE a.bucket = object_to_delete.bucket
-             AND a.object_key = object_to_delete.object_key
-         ), now())
-       )
-FROM object_to_delete
+SELECT a.bucket,
+       a.object_key,
+       GREATEST(now(), a.expires_at + interval '5 minutes')
+FROM avatar_uploads AS a
+WHERE a.id = $1
 ON CONFLICT (bucket, object_key) WHERE completed_at IS NULL
 DO UPDATE SET next_attempt_at = GREATEST(
   storage_deletion_jobs.next_attempt_at,
@@ -62,13 +45,27 @@ DO UPDATE SET next_attempt_at = GREATEST(
 )
 `
 
-type InsertIntoStorageDeletionJobsParams struct {
-	Bucket    string
-	ObjectKey string
+func (q *Queries) QueueAvatarObjectForDeletion(ctx context.Context, avatarUploadID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, queueAvatarObjectForDeletion, avatarUploadID)
+	return err
 }
 
-func (q *Queries) InsertIntoStorageDeletionJobs(ctx context.Context, arg InsertIntoStorageDeletionJobsParams) error {
-	_, err := q.db.Exec(ctx, insertIntoStorageDeletionJobs, arg.Bucket, arg.ObjectKey)
+const queuePhotoObjectForDeletion = `-- name: QueuePhotoObjectForDeletion :exec
+INSERT INTO storage_deletion_jobs (bucket, object_key, next_attempt_at)
+SELECT p.bucket,
+       p.object_key_original,
+       GREATEST(now(), p.expires_at + interval '5 minutes')
+FROM photos AS p
+WHERE p.id = $1
+ON CONFLICT (bucket, object_key) WHERE completed_at IS NULL
+DO UPDATE SET next_attempt_at = GREATEST(
+  storage_deletion_jobs.next_attempt_at,
+  EXCLUDED.next_attempt_at
+)
+`
+
+func (q *Queries) QueuePhotoObjectForDeletion(ctx context.Context, photoID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, queuePhotoObjectForDeletion, photoID)
 	return err
 }
 

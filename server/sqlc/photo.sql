@@ -124,21 +124,23 @@ WHERE id = sqlc.arg(id)
   AND user_id = sqlc.arg(user_id)
   AND status = 'processing';
 
--- name: MarkAvatarUploadSuperseded :exec
+-- name: MarkAvatarUploadSuperseded :one
 UPDATE avatar_uploads
 SET status = 'superseded', superseded_at = now()
 WHERE user_id = sqlc.arg(user_id)
   AND bucket = sqlc.arg(bucket)
   AND object_key = sqlc.arg(object_key)
-  AND status = 'ready';
+  AND status = 'ready'
+RETURNING id;
 
--- name: MarkAvatarUploadDeleted :exec
+-- name: MarkAvatarUploadDeleted :one
 UPDATE avatar_uploads
 SET status = 'deleted', deleted_at = now()
 WHERE user_id = sqlc.arg(user_id)
   AND bucket = sqlc.arg(bucket)
   AND object_key = sqlc.arg(object_key)
-  AND status IN ('ready', 'superseded');
+  AND status IN ('ready', 'superseded')
+RETURNING id;
 
 -- name: UpsertCurrentAvatar :exec
 INSERT INTO user_avatars (user_id, bucket, object_key, content_type, size)
