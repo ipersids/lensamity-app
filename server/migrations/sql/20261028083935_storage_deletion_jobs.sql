@@ -1,7 +1,7 @@
 -- +goose Up
 CREATE TABLE storage_deletion_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  bucket VARCHAR(63) NOT NULL,
+  bucket TEXT NOT NULL,
   object_key TEXT NOT NULL,
   attempts INTEGER NOT NULL DEFAULT 0,
   next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(),
