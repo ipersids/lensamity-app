@@ -1,5 +1,5 @@
 .gitignore
-infra/*
+infra/rustfs/
 *.md
 
 .env
@@ -11,3 +11,6 @@ infra/rustfs/logs
 .neon
 node_modules/
 bin/
+
+.git
+server/build/
