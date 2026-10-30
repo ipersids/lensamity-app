@@ -27,7 +27,7 @@ jobs:
       - name: Run Biome format check
         run: pnpm run format:check
 
-  backend_test:
+  backend_check:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,3 +53,24 @@ jobs:
         run: go vet ./...
       - name: Run Go tests
         run: go test ./...
+
+  production_image_check:
+    name: Build production Docker image
+    needs: [frontend_check, backend_check]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Validate production image build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./prod.Dockerfile
+          push: false
+          tags: lensamity:ci
