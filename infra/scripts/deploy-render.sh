@@ -67,3 +67,6 @@ for attempt in {1..90}; do
       ;;
   esac
 done
+
+echo "[ FAIL ] Timed out waiting for Render."
+exit 1
