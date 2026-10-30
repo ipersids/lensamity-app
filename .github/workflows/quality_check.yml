@@ -58,7 +58,6 @@ jobs:
         run: go test ./...
 
   production_image_check:
-    name: Build production Docker image
     needs: [frontend_check, backend_check]
     runs-on: ubuntu-latest
     permissions:
