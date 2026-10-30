@@ -1,0 +1,108 @@
+name: prepare-release
+run-name: Prepare ${{ inputs.bump }} release triggered by ${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Choose release version type
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  quality_check:
+    uses: ./.github/workflows/quality_check.yml
+
+  calculate_release_version:
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.tag.outputs.release_version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: tag
+        env:
+          BUMP: ${{inputs.bump}}
+        run: |
+          LAST_TAG="$(
+              git tag --list 'v*' --sort=-version:refname \
+              | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+              | head -n 1 || true
+            )"
+
+          LAST_TAG="${LAST_TAG:-v0.0.0}"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${LAST_TAG#v}"
+
+          case "${BUMP}" in
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            *)
+              echo "Unknown bump type: ${BUMP}"
+              exit 1;
+              ;;
+          esac
+
+          NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+
+          echo "Previous release version: ${LAST_TAG}"
+          echo "Next release version: ${NEXT_TAG}"
+          echo "release_version=${NEXT_TAG}" >> "$GITHUB_OUTPUT"
+
+  create-draft-release:
+    name: Release ${{ needs.calculate_release_version.outputs.release_version }} (${{ inputs.bump }})
+    needs: [quality_check, calculate_release_version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Require main as the selected branch
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "Start this workflow from main."
+            exit 1
+          }
+      - name: Create and push tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.calculate_release_version.outputs.release_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION"; then
+            echo "Tag $VERSION already exists."
+            exit 1
+          fi
+
+          git tag -a "$VERSION" "$GITHUB_SHA" -m "Release $VERSION"
+          git push origin "refs/tags/$VERSION"
+      - name: Create GitHub draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.calculate_release_version.outputs.release_version }}
+        run: |
+          gh release create "$VERSION" \
+            --draft \
+            --title "$VERSION" \
+            --generate-notes
