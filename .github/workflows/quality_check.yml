@@ -23,6 +23,14 @@ jobs:
           node-version: "24"
       - name: Install pnpm
         run: npm install -g pnpm@12.3.4
+
+      - name: Install Neon dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+      - name: Run Neon linter
+        run: pnpm run lint
+        working-directory: .
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
       - name: Run Biome linter
