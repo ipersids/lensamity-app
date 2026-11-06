@@ -42,4 +42,5 @@ The browser uploads image files directly to object storage using a short-lived p
 | File | Description |
 | ----- | ----------- |
 | [Architecture guide](docs/architecture.md) | Application structure, request flow, and data model. |
+| [API reference](docs/api.md) | Endpoints, request and response formats, and sequence diagrams. |
 | [Work hours listing](docs/work-hours-listing.md) | Development log with task descriptions and total hours spent. |
