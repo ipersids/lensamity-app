@@ -43,4 +43,9 @@ The browser uploads image files directly to object storage using a short-lived p
 | ----- | ----------- |
 | [Architecture guide](docs/architecture.md) | Application structure, request flow, and data model. |
 | [API reference](docs/api.md) | Endpoints, request and response formats, and sequence diagrams. |
+| [Local development](docs/development.md) | Environment setup and commands to run the app locally. |
 | [Work hours listing](docs/work-hours-listing.md) | Development log with task descriptions and total hours spent. |
+
+## AI use
+
+I used Codex (5.5 and 6.1 Sol) and GitHub Copilot to draft documentation, learn more about the technologies in this project, review code, and generate some source files. I mark source files generated entirely or almost entirely by AI with a comment at the top.
