@@ -46,7 +46,7 @@ func NewS3Client(c Config) (*Client, error) {
 	})
 
 	if client == nil {
-		return nil, errors.New("failed initialize S3 client from config")
+		return nil, errors.New("failed to initialize S3 client from config")
 	}
 
 	// build aws.Config for URLs returned to the browser.
@@ -61,7 +61,7 @@ func NewS3Client(c Config) (*Client, error) {
 	}))
 
 	if presignClient == nil {
-		return nil, errors.New("failed initialize S3 presign client from config")
+		return nil, errors.New("failed to initialize S3 presign client from config")
 	}
 
 	return &Client{

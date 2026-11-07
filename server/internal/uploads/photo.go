@@ -34,7 +34,7 @@ var (
 	ErrUploadNotFound        = errors.New("uploaded object not found")
 	ErrUploadMetadataMissing = errors.New("uploaded object is missing content type or length")
 	ErrUploadSizeMismatch    = errors.New("uploaded object size mismatch")
-	ErrPhotoAlreadyExists    = errors.New("photo already exists for date")
+	ErrPhotoAlreadyExists    = errors.New("a photo already exists for this date")
 	ErrDateOutOfRange        = errors.New("date must be within the last 7 days including today")
 	ErrUnauthorized          = errors.New("unauthorized")
 )

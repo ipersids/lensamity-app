@@ -17,7 +17,7 @@ var (
 )
 
 var (
-	ErrDisplayNameLength = errors.New("display must be 3-32 characters")
+	ErrDisplayNameLength = errors.New("display name must be 3-32 characters")
 	ErrUsernameInvalid   = errors.New("username must be 3-32 characters and only contain alphanumeric characters, underscores, or hyphens")
 )
 

@@ -27,7 +27,7 @@ const createValidatedImageURL = async (file: File) => {
   }
 
   if (file.size > maxImageBytes) {
-    throw new Error("Choose an image smaller than 1 MB.");
+    throw new Error("Choose an image of 1 MiB or smaller.");
   }
 
   const imageURL = URL.createObjectURL(file);
@@ -48,7 +48,7 @@ const createValidatedImageURL = async (file: File) => {
       image.naturalWidth > image.naturalHeight * maxImageAspectRatio ||
       image.naturalHeight > image.naturalWidth * maxImageAspectRatio
     ) {
-      throw new Error("Choose an image with an aspect ratio no wider than 3:1.");
+      throw new Error("Choose an image with an aspect ratio between 1:3 and 3:1.");
     }
 
     return imageURL;

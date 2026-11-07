@@ -81,18 +81,18 @@ func (ph *PhotoHandler) UploadIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Date == "" || req.ContentType == "" {
-		WriteError(w, http.StatusBadRequest, "invalid_upload_intent", "date and content_type are required")
+		WriteError(w, http.StatusBadRequest, "invalid_upload_intent", "date and contentType are required")
 		return
 	}
 
 	if req.Size <= 0 {
-		WriteError(w, http.StatusBadRequest, "invalid_upload_intent", "size is negative or zero")
+		WriteError(w, http.StatusBadRequest, "invalid_upload_intent", "size must be greater than zero")
 		return
 	}
 
 	date, err := time.Parse("02-01-2006", req.Date)
 	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid_date", "date must be DD-MM-YYYY")
+		WriteError(w, http.StatusBadRequest, "invalid_date", "date must use DD-MM-YYYY format")
 		return
 	}
 
@@ -113,7 +113,7 @@ func (ph *PhotoHandler) UploadIntent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, uploads.ErrFileTooLarge) {
-			WriteError(w, http.StatusRequestEntityTooLarge, "file_too_large", "file must be 10 MB or smaller")
+			WriteError(w, http.StatusRequestEntityTooLarge, "file_too_large", "file must be 10 MiB or smaller")
 			return
 		}
 		if errors.Is(err, uploads.ErrDateOutOfRange) {
@@ -121,7 +121,7 @@ func (ph *PhotoHandler) UploadIntent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, uploads.ErrPhotoAlreadyExists) {
-			WriteError(w, http.StatusConflict, "photo_already_exists", "photo already exists for date")
+			WriteError(w, http.StatusConflict, "photo_already_exists", "a photo already exists for this date")
 			return
 		}
 		slog.Error("UploadIntent: request failed", "error", err)
@@ -141,7 +141,7 @@ func (ph *PhotoHandler) UploadIntent(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		slog.Error("UploadIntent: failed encode response", "error", err)
+		slog.Error("UploadIntent: failed to encode response", "error", err)
 	}
 }
 
@@ -169,7 +169,7 @@ func (ph *PhotoHandler) UploadComplete(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, uploads.ErrUnsupportedFileType):
 			WriteError(w, http.StatusUnsupportedMediaType, "unsupported_file_type", "unsupported file type")
 		case errors.Is(err, uploads.ErrFileTooLarge):
-			WriteError(w, http.StatusRequestEntityTooLarge, "file_too_large", "file must be 10 MB or smaller")
+			WriteError(w, http.StatusRequestEntityTooLarge, "file_too_large", "file must be 10 MiB or smaller")
 		case errors.Is(err, uploads.ErrPhotoNotFound):
 			WriteError(w, http.StatusNotFound, "photo_not_found", "photo not found")
 		case errors.Is(err, uploads.ErrPhotoAlreadyExists):
@@ -271,12 +271,12 @@ func (ph *PhotoHandler) UploadAvatarIntent(w http.ResponseWriter, r *http.Reques
 	}
 
 	if req.ContentType == "" {
-		WriteError(w, http.StatusBadRequest, "invalid_upload_intent", "content_type field is required")
+		WriteError(w, http.StatusBadRequest, "invalid_upload_intent", "contentType field is required")
 		return
 	}
 
 	if req.Size <= 0 {
-		WriteError(w, http.StatusBadRequest, "invalid_upload_intent", "size is negative or zero")
+		WriteError(w, http.StatusBadRequest, "invalid_upload_intent", "size must be greater than zero")
 		return
 	}
 
@@ -294,10 +294,10 @@ func (ph *PhotoHandler) UploadAvatarIntent(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		if errors.Is(err, uploads.ErrFileTooLarge) {
-			WriteError(w, http.StatusRequestEntityTooLarge, "file_too_large", "avatar must be 1 MB or smaller")
+			WriteError(w, http.StatusRequestEntityTooLarge, "file_too_large", "avatar must be 1 MiB or smaller")
 			return
 		}
-		slog.Error("UploadIntent: request failed", "error", err)
+		slog.Error("UploadAvatarIntent: request failed", "error", err)
 		WriteError(w, statusForPhotoError(err), "internal_error", "something went wrong")
 		return
 	}
@@ -314,7 +314,7 @@ func (ph *PhotoHandler) UploadAvatarIntent(w http.ResponseWriter, r *http.Reques
 	})
 
 	if err != nil {
-		slog.Error("UploadIntent: failed encode response", "error", err)
+		slog.Error("UploadAvatarIntent: failed to encode response", "error", err)
 	}
 }
 
@@ -342,7 +342,7 @@ func (ph *PhotoHandler) UploadAvatarComplete(w http.ResponseWriter, r *http.Requ
 		case errors.Is(err, uploads.ErrUnsupportedFileType):
 			WriteError(w, http.StatusUnsupportedMediaType, "unsupported_file_type", "unsupported file type")
 		case errors.Is(err, uploads.ErrFileTooLarge):
-			WriteError(w, http.StatusRequestEntityTooLarge, "file_too_large", "avatar must be 1 MB or smaller")
+			WriteError(w, http.StatusRequestEntityTooLarge, "file_too_large", "avatar must be 1 MiB or smaller")
 		case errors.Is(err, uploads.ErrInvalidImage):
 			WriteError(w, http.StatusUnprocessableEntity, "invalid_image", "uploaded file is not a valid image")
 		case errors.Is(err, uploads.ErrImageDimensions):
@@ -356,7 +356,7 @@ func (ph *PhotoHandler) UploadAvatarComplete(w http.ResponseWriter, r *http.Requ
 		case errors.Is(err, uploads.ErrUploadNotFound):
 			WriteError(w, http.StatusNotFound, "upload_not_found", "uploaded object not found")
 		default:
-			slog.Error("UploadComplete: request failed", "error", err)
+			slog.Error("UploadAvatarComplete: request failed", "error", err)
 			WriteError(w, statusForPhotoError(err), "internal_error", "something went wrong")
 		}
 		return

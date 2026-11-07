@@ -95,7 +95,7 @@ func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(profile)
 
 	if err != nil {
-		slog.Error("UserProfile handler: failed encode response", "error", err)
+		slog.Error("UserProfile handler: failed to encode response", "error", err)
 	}
 }
 
@@ -164,7 +164,7 @@ func (h *UserHandler) GetUserPhotos(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		slog.Error("UserProfile handler: failed encode response", "error", err)
+		slog.Error("GetUserPhotos handler: failed to encode response", "error", err)
 	}
 }
 
@@ -200,13 +200,13 @@ func (h *UserHandler) GetUserPhotoByID(w http.ResponseWriter, r *http.Request) {
 		PhotoID:       photoID,
 	})
 	if err != nil {
-		slog.Error("GetUserPhotos: request failed", "error", err)
+		slog.Error("GetUserPhotoByID: request failed", "error", err)
 		if errors.Is(err, users.ErrorForbiddenPhotoAccess) {
-			http.Error(w, "private/unavailable to view", http.StatusForbidden)
+			http.Error(w, "photo is private or unavailable to view", http.StatusForbidden)
 			return
 		}
 		if errors.Is(err, users.ErrorNotFoundPhotoID) {
-			http.Error(w, "not found photo", http.StatusNotFound)
+			http.Error(w, "photo not found", http.StatusNotFound)
 			return
 		}
 		http.Error(w, "something went wrong", http.StatusInternalServerError)
@@ -229,7 +229,7 @@ func (h *UserHandler) GetUserPhotoByID(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(body)
 	if err != nil {
-		slog.Error("UserProfile handler: failed encode response", "error", err)
+		slog.Error("GetUserPhotoByID handler: failed to encode response", "error", err)
 	}
 
 }
@@ -351,7 +351,7 @@ func (h *UserHandler) UpdateMyUsername(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(UpdateMyUsernameResponse{UpdatedUsername: updatedUsername})
 	if err != nil {
-		slog.Error("UserProfile handler: failed encode response", "error", err)
+		slog.Error("UpdateUsername handler: failed to encode response", "error", err)
 	}
 }
 

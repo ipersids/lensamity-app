@@ -59,7 +59,7 @@ func main() {
 
 	conf, err := config.Load()
 	if err != nil {
-		slog.Error("Loading envirenment failed", "error", err)
+		slog.Error("failed to load environment configuration", "error", err)
 		os.Exit(1)
 	}
 
@@ -147,7 +147,7 @@ func main() {
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		slog.Error("server forced to shutdown", "error", err)
+		slog.Error("server forced to shut down", "error", err)
 		os.Exit(1)
 	}
 }

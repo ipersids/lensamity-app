@@ -54,7 +54,7 @@ app.post("/session-cleanup", async (c) => {
          OR revoked_at <= now() - INTERVAL '3 days'
     `);
 
-    console.info("[ cron ] storage cleanup completed", {
+    console.info("[ cron ] session cleanup completed", {
       invocationId: invocation.invocationId,
       triggerName: invocation.trigger.name,
       triggerID: invocation.trigger.id,

@@ -96,7 +96,7 @@ export const getApiError = (error: unknown): ApiError => {
           status,
           error: {
             code: "unauthorized",
-            message: "Oh, this session has already expired. Login again to continue.",
+            message: "Your session has expired. Log in again to continue.",
           },
         };
       }

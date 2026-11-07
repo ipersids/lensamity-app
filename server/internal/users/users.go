@@ -219,7 +219,7 @@ func (s *UserService) GetUserPhotos(ctx context.Context, p GetUserPhotosParams) 
 		})
 		if err != nil {
 			if storage.IsObjectNotFound(err) {
-				slog.Error("photo object object not found", "error", err)
+				slog.Error("photo object not found", "error", err)
 				result.Items = append(result.Items, item)
 				continue
 			}

@@ -95,7 +95,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(SignupResponse{Username: user.UsernameKey, DisplayName: user.UsernameDisplay})
 
 	if err != nil {
-		slog.Error("Signup: failed encode response", "error", err)
+		slog.Error("Signup: failed to encode response", "error", err)
 	}
 }
 
@@ -149,7 +149,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		slog.Error("Login: failed encode response", "error", err)
+		slog.Error("Login: failed to encode response", "error", err)
 	}
 }
 
@@ -258,7 +258,7 @@ func (h *AuthHandler) UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
-			WriteError(w, http.StatusBadRequest, "invalid_old_password", "given old password is invalid. Check typos and try again.")
+			WriteError(w, http.StatusBadRequest, "invalid_old_password", "current password is incorrect. Check for typos and try again.")
 			return
 		}
 		if errors.Is(err, auth.ErrNewPasswordValidation) {
@@ -266,7 +266,7 @@ func (h *AuthHandler) UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, auth.ErrPasswordChanged) {
-			WriteError(w, http.StatusConflict, "invalid_new_password", "password changed in another session. Enter your current password and try again.")
+			WriteError(w, http.StatusConflict, "invalid_new_password", "password was changed in another session. Enter your current password and try again.")
 			return
 		}
 		if errors.Is(err, auth.ErrInvalidSession) {
@@ -311,7 +311,7 @@ func (h *AuthHandler) Session(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(SessionResponse{Username: user.UsernameKey, DisplayName: user.UsernameDisplay})
 
 	if err != nil {
-		slog.Error("Signup: failed encode response", "error", err)
+		slog.Error("Session: failed to encode response", "error", err)
 	}
 }
 
@@ -325,7 +325,7 @@ func (h *AuthHandler) UsernameAvailability(w http.ResponseWriter, r *http.Reques
 
 	var username string
 	if username = query.Get("username"); username == "" {
-		WriteError(w, http.StatusBadRequest, "invalid_params", "parameter username is required")
+		WriteError(w, http.StatusBadRequest, "invalid_params", "username parameter is required")
 		return
 	}
 
@@ -349,7 +349,7 @@ func (h *AuthHandler) UsernameAvailability(w http.ResponseWriter, r *http.Reques
 	err = json.NewEncoder(w).Encode(response)
 
 	if err != nil {
-		slog.Error("Signup: failed encode response", "error", err)
+		slog.Error("UsernameAvailability: failed to encode response", "error", err)
 	}
 }
 

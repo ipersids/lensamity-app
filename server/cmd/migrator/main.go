@@ -28,7 +28,7 @@ func main() {
 
 	db, err := sql.Open("pgx", dbURL)
 	if err != nil {
-		slog.Error("openning database failed", "error", err)
+		slog.Error("opening database failed", "error", err)
 		os.Exit(1)
 	}
 	defer func() {

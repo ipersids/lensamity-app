@@ -58,7 +58,7 @@ const LoginForm = () => {
       {error && <p className="auth-error">{error}</p>}
 
       <button disabled={isLoading} type="submit">
-        {"Log In"}
+        {"Log in"}
       </button>
     </form>
   );
