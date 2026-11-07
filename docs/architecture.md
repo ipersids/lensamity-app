@@ -6,7 +6,7 @@ Lensamity consists of a React web client, a Go HTTP API, a PostgreSQL database, 
 
 ```mermaid
 flowchart LR
-    Browser[Browser: React client] -->|Page and API requests| Nginx[Nginx]
+    Browser[Browser] -->|Page and API requests| Nginx[Nginx]
     Nginx -->|Serves| Assets[Compiled frontend assets]
     Nginx -->|Proxies API requests| API[Go API]
     API --> Database[(PostgreSQL)]
@@ -145,8 +145,4 @@ Database migrations are run with the separate migrator. The production container
 
 ## Current limitations
 
-- Daily detection of abandoned uploads is not implemented yet. The scheduled storage job currently processes existing deletion jobs; it does not discover expired uploads. See status of [issue #33](https://github.com/ipersids/lensamity-app/issues/33).
-- Original-photo completion validates storage metadata but does not yet decode the photo bytes or perform the image-processing work marked TODO. Avatar validation is more extensive.
-- Browser date selection uses local dates while the server evaluates the allowed date window in UTC, which can differ near midnight.
-- Private visibility restricts new photo access through the API. It does not revoke already issued storage URLs or hide basic profile metadata.
-- Scheduled deletion retries depend on the separately deployed cleanup function and its schedules.
+See some known limitations and its status in issue [[ docs ] Current limitations #34](https://github.com/ipersids/lensamity-app/issues/34)
