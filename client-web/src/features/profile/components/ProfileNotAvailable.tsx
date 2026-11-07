@@ -13,7 +13,7 @@ const ProfileNotAvailable = () => {
       <h1>Profile isn't available</h1>
       <p>The link may be broken, or the profile may have been removed.</p>
       {!user ? (
-        <NavLink to="/signup">Join community to explore</NavLink>
+        <NavLink to="/signup">Join the community to explore</NavLink>
       ) : (
         <NavLink to="/profile">Go to your profile</NavLink>
       )}

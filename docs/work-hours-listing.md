@@ -192,8 +192,12 @@
 |  | 0.25 | Added root Neon dependency installation and linting to the quality-check workflow. | `8411320` feat(ci): update .github/workflows/quality_check.yml to run Neon linter |
 |  | 0.25 | Added an explicit timeout failure message and nonzero exit when Render deployment polling is exhausted. | `7bca236` chore(ci/cd): add explicit timeout message while waiting for Render deployment |
 |  | 1.25 | Merged into `main` and tested the first deployment to Render. | `5817a18` merge(#32): add Render deployment automation |
-| 2026-11-04 | 3.50 | Collected all previous commits in work hours listing table | |
-| **Total** | **264.90** |  |  |
+| 2026-11-04 | 3.50 | Collected previous commits in the work-hours table. | `6f8675e` docs: add work hours listing table |
+| 2026-11-06 | 0.50 | Updated the README and added the architecture guide with system structure, workflows, authentication, deployment, and design tradeoffs. | `3da7227` chore(docs): update README.md and add docs/architecture.md |
+|  | 0.75 | Added the API reference with endpoint descriptions, request and response formats, errors, and sequence diagrams. | `8543e5b` chore(docs): add API reference and sequence diagrams |
+|  | 0.25 | Added local development instructions for Docker and manual startup, and documented AI use in the README. | `d265e67` chore(docs): add instructions for local development |
+| 2026-11-07 | 0.50 | Added screenshots and a short user guide for the main features. Updated documentation links and architecture notes. | `a9faa29` chore(docs): add docs/user-guide.md for main features |
+| **Total** | **266.90** |  |  |
 
 ## Technologies used in the project
 

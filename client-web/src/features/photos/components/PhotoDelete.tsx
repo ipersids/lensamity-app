@@ -51,7 +51,7 @@ const PhotoDelete = ({
 
       onError: (error) => {
         const err = getApiError(error);
-        setError(`Error: ${err.error.message} Contact us, if error will appear again.`);
+        setError(`Error: ${err.error.message} Contact us if the error occurs again.`);
       },
     });
   };

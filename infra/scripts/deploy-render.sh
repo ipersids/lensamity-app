@@ -14,7 +14,7 @@ HTTP_STATUS="$(
 )"
 
 if [ "$HTTP_STATUS" != "201" ]; then
-  echo "Render did not create the deploy (HTTP $HTTP_STATUS)."
+  echo "Render did not create the deployment (HTTP $HTTP_STATUS)."
   cat "$RESPONSE_FILE"
   exit 1
 fi
@@ -22,13 +22,13 @@ fi
 DEPLOY_ID="$(jq -r '.id // empty' "$RESPONSE_FILE")"
 
 test -n "$DEPLOY_ID" || {
-  echo "Render response did not contain a deploy ID."
+  echo "Render response did not contain a deployment ID."
   cat "$RESPONSE_FILE"
   exit 1
 }
 
 echo "deploy_id=$DEPLOY_ID" >> "$GITHUB_OUTPUT"
-echo "Render deploy started: $DEPLOY_ID"
+echo "Render deployment started: $DEPLOY_ID"
 
 for attempt in {1..90}; do
   HTTP_STATUS="$(
@@ -41,7 +41,7 @@ for attempt in {1..90}; do
   )"
 
   if [ "$HTTP_STATUS" != "200" ]; then
-    echo "Render retrieve deploy request failed (HTTP $HTTP_STATUS)."
+    echo "Failed to retrieve Render deployment status (HTTP $HTTP_STATUS)."
     cat "$RESPONSE_FILE"
     exit 1
   fi
@@ -54,11 +54,11 @@ for attempt in {1..90}; do
       sleep 20
       ;;
     live)
-      echo "[ SUCCESS ] Render deployment status: $STATUS for deployment id ${DEPLOY_ID}"
+      echo "[ SUCCESS ] Render deployment status: $STATUS for deployment ID ${DEPLOY_ID}"
       exit 0
       ;;
     deactivated | build_failed | update_failed | canceled | pre_deploy_in_progress | pre_deploy_failed)
-      echo "[ FAIL ] Render deployment status: $STATUS for deployment id ${DEPLOY_ID}"
+      echo "[ FAIL ] Render deployment status: $STATUS for deployment ID ${DEPLOY_ID}"
       exit 1
       ;;
     *)

@@ -146,7 +146,7 @@ const AddPhotoPage = () => {
           <small>
             {selectedFile?.name
               ? "Click or drop another image to replace it"
-              : "PNG or JPG, one image only"}
+              : "JPEG, PNG, or WebP, one image only"}
           </small>
           <input
             type="file"

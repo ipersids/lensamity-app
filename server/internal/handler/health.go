@@ -20,6 +20,6 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		Time:   time.Now().UTC().Format(time.RFC3339),
 	}
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		slog.Error("failed to encoge health check body", "error", err)
+		slog.Error("failed to encode health check body", "error", err)
 	}
 }

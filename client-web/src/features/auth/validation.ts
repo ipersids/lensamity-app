@@ -26,7 +26,7 @@ export const validatePassword = (
     return {
       score: 2,
       description: "Good",
-      feedback: "Just a few more characters to reach the recommended minimum of 15",
+      feedback: "Use at least 15 characters.",
     };
   }
 
