@@ -33,7 +33,11 @@ const ProfilePage = () => {
         }}
       />
 
-      <ProfilePhotos username={username} canViewPhotos={user.canViewPhotos} />
+      <ProfilePhotos
+        username={username}
+        canViewPhotos={user.canViewPhotos}
+        canEdit={user.canEdit}
+      />
     </ProfileShell>
   );
 };

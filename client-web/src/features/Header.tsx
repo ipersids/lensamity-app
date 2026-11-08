@@ -1,3 +1,4 @@
+import { Bars3Icon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { useLoading, useLogout, useUser } from "../stores/auth";
@@ -51,6 +52,7 @@ const Header = () => {
               onClick={() => setIsAccountMenuOpen((current) => !current)}
             >
               <span className="nav-user">{user.displayName}</span>
+              <Bars3Icon className="account-menu-icon" aria-hidden="true" focusable="false" />
             </button>
 
             {isAccountMenuOpen && (
