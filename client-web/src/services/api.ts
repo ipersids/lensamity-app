@@ -14,7 +14,7 @@ axios.defaults.redact = ["authorization", "password"];
 
 export const authApi: AxiosInstance = axios.create({
   baseURL,
-  timeout: 2000,
+  timeout: 20_000,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -31,7 +31,7 @@ authApi.interceptors.request.use((config) => {
 
 export const internalApi: AxiosInstance = axios.create({
   baseURL,
-  timeout: 5000,
+  timeout: 20_000,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
