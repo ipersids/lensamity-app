@@ -35,12 +35,12 @@ a {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
 textarea {
-  font: inherit;
   resize: vertical;
 }
 
@@ -125,6 +125,16 @@ textarea {
 
 .account-menu {
   position: relative;
+}
+
+.account-menu-trigger {
+  gap: 8px;
+}
+
+.account-menu-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .account-menu-trigger[aria-expanded="true"] {
@@ -402,28 +412,6 @@ main {
   color: #b8d2ff;
 }
 
-@media (max-width: 760px) {
-  .home-hero,
-  .home-story {
-    grid-template-columns: 1fr;
-  }
-
-  .home-hero {
-    min-height: 0;
-  }
-
-  .home-photo-composition {
-    width: min(100%, 440px);
-    min-height: 400px;
-    margin: 0 auto;
-  }
-
-  .home-closing {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-
 footer {
   padding: 24px;
   color: var(--muted);
@@ -431,28 +419,41 @@ footer {
   text-align: center;
 }
 
-.auth-page {
+.auth-page,
+.add-photo-page {
   display: grid;
   place-items: center;
+}
+
+.auth-page {
   min-height: calc(100vh - 160px);
 }
 
-.auth-form {
+.auth-form,
+.add-photo-form {
   display: grid;
   gap: 16px;
+}
+
+.auth-form {
   width: min(100%, 420px);
 }
 
-.auth-page > .auth-form {
+.auth-page > .auth-form,
+.add-photo-form {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: clamp(22px, 5vw, 36px);
   background: var(--surface);
 }
 
-.auth-form h1 {
+.auth-form h1,
+.add-photo-form h1 {
   margin: 0;
   font-size: 2rem;
+}
+
+.auth-form h1 {
   line-height: 1.1;
   text-align: center;
 }
@@ -491,7 +492,9 @@ footer {
   background: var(--surface);
 }
 
-.auth-form > button {
+.auth-form > button,
+.add-photo-form button,
+.settings-save-button {
   min-height: 44px;
   border: 0;
   border-radius: 999px;
@@ -502,8 +505,14 @@ footer {
   cursor: pointer;
 }
 
-.auth-form > button:hover {
+.auth-form > button:hover,
+.add-photo-form button:hover,
+.settings-save-button:hover {
   background: var(--primary-hover);
+}
+
+.settings-save-button {
+  justify-self: start;
 }
 
 .auth-form button:disabled {
@@ -549,24 +558,8 @@ footer {
   font-size: 0.9rem;
 }
 
-.add-photo-page {
-  display: grid;
-  place-items: center;
-}
-
 .add-photo-form {
-  display: grid;
-  gap: 16px;
   width: min(100%, 520px);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: clamp(22px, 5vw, 36px);
-  background: var(--surface);
-}
-
-.add-photo-form h1 {
-  margin: 0;
-  font-size: 2rem;
 }
 
 .settings-page {
@@ -722,6 +715,9 @@ footer {
 }
 
 .photo-upload-area strong {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: var(--text);
   font-size: 1.1rem;
 }
@@ -730,21 +726,10 @@ footer {
   font-weight: 400;
 }
 
-.add-photo-form button,
-.settings-save-button {
-  min-height: 44px;
-  border: 0;
-  border-radius: 999px;
-  padding: 0 18px;
-  background: var(--primary);
-  color: #ffffff;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.add-photo-form button:hover,
-.settings-save-button:hover {
-  background: var(--primary-hover);
+.photo-date-note {
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .add-photo-form button:disabled,
@@ -809,10 +794,6 @@ footer {
 .settings-avatar-delete-button svg {
   width: 20px;
   height: 20px;
-}
-
-.settings-avatar-delete-button:not(:disabled):hover {
-  background: #b91c1c;
 }
 
 .avatar-change-dialog {
@@ -940,10 +921,6 @@ footer {
   color: var(--error);
 }
 
-.settings-save-button {
-  justify-self: start;
-}
-
 .dialog-overlay {
   position: fixed;
   z-index: 50;
@@ -1064,21 +1041,13 @@ footer {
 }
 
 .dialog-save-button.dialog-delete-button,
-.dialog-save-button.dialog-delete-button:hover {
+.settings-danger-zone .dialog-trigger {
   background: var(--error);
   color: #ffffff;
 }
 
-.dialog-save-button.dialog-delete-button:hover {
-  background: #b91c1c;
-}
-
-.settings-danger-zone .dialog-trigger,
-.settings-danger-zone .dialog-trigger:hover {
-  background: var(--error);
-  color: #ffffff;
-}
-
+.settings-avatar-delete-button:not(:disabled):hover,
+.dialog-save-button.dialog-delete-button:hover,
 .settings-danger-zone .dialog-trigger:hover {
   background: #b91c1c;
 }
@@ -1250,6 +1219,37 @@ footer {
   margin: 0;
   color: var(--text);
   font-weight: 800;
+}
+
+.profile-gallery {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-add-photo-card {
+  aspect-ratio: 1;
+}
+
+.profile-add-photo {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border: 1px dashed var(--border);
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+
+.profile-add-photo:hover,
+.profile-add-photo:focus-visible {
+  border-color: var(--primary);
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.profile-add-photo svg {
+  width: clamp(28px, 4vw, 40px);
+  height: clamp(28px, 4vw, 40px);
 }
 
 .profile-photos {
@@ -1602,6 +1602,26 @@ footer {
 }
 
 @media (max-width: 760px) {
+  .home-hero,
+  .home-story {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero {
+    min-height: 0;
+  }
+
+  .home-photo-composition {
+    width: min(100%, 440px);
+    min-height: 400px;
+    margin: 0 auto;
+  }
+
+  .home-closing {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .settings-page {
     grid-template-columns: minmax(0, 1fr);
     gap: 20px;
@@ -1667,10 +1687,7 @@ footer {
     gap: 12px;
   }
 
-  .profile-about {
-    grid-column: 1 / -1;
-  }
-
+  .profile-about,
   .profile-count {
     grid-column: 1 / -1;
   }

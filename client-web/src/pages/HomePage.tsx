@@ -1,14 +1,14 @@
 // AI-generated home page content.
 import { ArrowRightIcon, CameraIcon, HeartIcon, UserCircleIcon } from "@heroicons/react/24/outline";
-import { Link } from "react-router";
+import { Link, Navigate } from "react-router";
 import { useUser } from "../stores/auth";
 
 const HomePage = () => {
   const user = useUser();
-  const primaryLink = user ? "/upload" : "/signup";
-  const primaryLabel = user ? "Add a photo" : "Create your profile";
-  const secondaryLink = user ? `/users/${user.username}` : "/login";
-  const secondaryLabel = user ? "View your profile" : "Log in";
+
+  if (user) {
+    return <Navigate to={`/users/${user.username}`} replace />;
+  }
 
   return (
     <section className="home-page">
@@ -21,12 +21,12 @@ const HomePage = () => {
             a few words, and keep a small record of what mattered.
           </p>
           <div className="home-actions">
-            <Link className="home-primary-action" to={primaryLink}>
-              {primaryLabel}
+            <Link className="home-primary-action" to={"/signup"}>
+              {"Create your profile"}
               <ArrowRightIcon className="home-action-icon" aria-hidden="true" />
             </Link>
-            <Link className="home-secondary-action" to={secondaryLink}>
-              {secondaryLabel}
+            <Link className="home-secondary-action" to={"/login"}>
+              {"Log in"}
             </Link>
           </div>
         </div>
@@ -77,8 +77,8 @@ const HomePage = () => {
           <p className="home-eyebrow">Start with one photo</p>
           <h2>A lighter way to look back.</h2>
         </div>
-        <Link className="home-primary-action" to={primaryLink}>
-          {primaryLabel}
+        <Link className="home-primary-action" to={"/signup"}>
+          {"Create your profile"}
           <ArrowRightIcon className="home-action-icon" aria-hidden="true" />
         </Link>
       </section>
