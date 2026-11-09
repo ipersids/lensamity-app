@@ -50,8 +50,6 @@ func ValidatePassword(p string, userInputs []string) error {
 		return errors.New("password is too weak and easy to guess")
 	}
 
-	// @TODO: compare password against breach/common-password blocklist
-
 	return nil
 }
 

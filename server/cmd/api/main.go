@@ -34,7 +34,7 @@ func (h *handlers) registerRoutes(mux *http.ServeMux, authRequiredMiddleware fun
 	mux.HandleFunc("GET /api/auth/session", authRequiredMiddleware(h.auth.Session))
 	mux.HandleFunc("GET /api/auth/username-availability", h.auth.UsernameAvailability)
 
-	// 2. @TODO Context-aware Profile route
+	// 2. Profile and photo viewing (requires login)
 	mux.HandleFunc("GET /api/users/{username}", authRequiredMiddleware(h.user.GetUserProfile))
 	mux.HandleFunc("GET /api/users/{username}/photos", authRequiredMiddleware(h.user.GetUserPhotos))
 	mux.HandleFunc("GET /api/users/{username}/photos/{id}", authRequiredMiddleware(h.user.GetUserPhotoByID))
