@@ -1,30 +1,18 @@
 import { PhotoIcon } from "@heroicons/react/24/outline";
-import {
-  type ChangeEventHandler,
-  type DragEventHandler,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { type ChangeEventHandler, type DragEventHandler, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import useAddPhoto from "../hooks/useAddPhoto";
 import { getApiError } from "../services/api";
 import { useUser } from "../stores/auth";
 
-const DATE_ERROR = "Date must be within the last 7 days.";
+const DATE_ERROR = "Choose today or one of the previous six days in UTC.";
 
-const toDateInputValue = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
+const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
 
 const getDateRange = () => {
   const today = new Date();
   const weekAgo = new Date(today);
-  weekAgo.setDate(today.getDate() - 6);
+  weekAgo.setUTCDate(today.getUTCDate() - 6);
 
   return {
     max: toDateInputValue(today),
@@ -40,12 +28,13 @@ const toApiDate = (value: string) => {
 const AddPhotoPage = () => {
   const navigate = useNavigate();
   const currentUser = useUser();
-  const { min: minDate, max: maxDate } = useMemo(getDateRange, []);
+  const [dateRange, setDateRange] = useState(getDateRange);
+  const { min: minDate, max: maxDate } = dateRange;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [photoDate, setPhotoDate] = useState<string>(maxDate);
-  const [dateError, setDateError] = useState<string>("");
+  const dateError = !photoDate || photoDate < minDate || photoDate > maxDate ? DATE_ERROR : "";
   const [uploadError, setUploadError] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -92,16 +81,20 @@ const AddPhotoPage = () => {
   };
 
   const handleDateChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-    const value = event.target.value;
-
-    setPhotoDate(value);
-    setDateError(value < minDate || value > maxDate ? DATE_ERROR : "");
+    setPhotoDate(event.target.value);
   };
 
   const handleUpload = async () => {
     if (!selectedFile || !currentUser) return;
 
     setUploadError("");
+
+    const range = getDateRange();
+    setDateRange(range);
+    if (!photoDate || photoDate < range.min || photoDate > range.max) {
+      setUploadError(DATE_ERROR);
+      return;
+    }
 
     try {
       const photoID = await addPhoto.mutateAsync({
@@ -178,7 +171,7 @@ const AddPhotoPage = () => {
         </label>
 
         <label>
-          Date
+          Date (UTC)
           <input
             type="date"
             name="date"
@@ -187,8 +180,11 @@ const AddPhotoPage = () => {
             value={photoDate}
             onChange={handleDateChange}
             aria-invalid={!!dateError}
-            aria-describedby={dateError ? "photo-date-error" : undefined}
+            aria-describedby={`photo-date-note${dateError ? " photo-date-error" : ""}`}
           />
+          <small id="photo-date-note" className="photo-date-note">
+            You can upload photos from the last seven days (one photo per day).
+          </small>
           {dateError && (
             <span id="photo-date-error" className="auth-error">
               {dateError}
