@@ -202,8 +202,6 @@ func (ps *PhotoService) UploadPhotoComplete(ctx context.Context, p UploadPhotoCo
 		return fail("file_too_large", ErrFileTooLarge)
 	}
 
-	// @TODO: validate real bytes, check actual image type, dimension, and encode a processed webp
-
 	contentType, _, err := normalizeImageContentType(headData.ContentType)
 	if err != nil {
 		return fail("unsupported_content_type", err)

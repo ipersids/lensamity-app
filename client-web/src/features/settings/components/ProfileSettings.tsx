@@ -27,22 +27,11 @@ const ProfileUpdate = ({ username, displayName, about, visibility }: ProfileUpda
   const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.stopPropagation();
     e.preventDefault();
-    updateProfile.mutate(
-      {
-        displayName:
-          updatedDisplayName === "" || !updatedDisplayName ? username : updatedDisplayName,
-        about: updatedAbout,
-        visibility: updatedVisibility,
-      },
-      {
-        onSuccess: () => {
-          // @TODO: notify success
-        },
-        onError: (_error) => {
-          // @TODO: notify error console.log(getApiErrorMessage(error));
-        },
-      },
-    );
+    updateProfile.mutate({
+      displayName: updatedDisplayName === "" || !updatedDisplayName ? username : updatedDisplayName,
+      about: updatedAbout,
+      visibility: updatedVisibility,
+    });
   };
 
   const handleVisibilityChange = (

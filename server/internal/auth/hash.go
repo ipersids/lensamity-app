@@ -93,7 +93,6 @@ func CompareHashAndPassword(hashedPassword string, password []byte) error {
 	}
 
 	if err := h.Params.isValid(); err != nil {
-		// @TODO log error
 		return ErrHashingParametersMismatch
 	}
 
