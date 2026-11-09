@@ -1,3 +1,6 @@
+[![quality-check](https://github.com/ipersids/lensamity-app/actions/workflows/quality_check.yml/badge.svg)](https://github.com/ipersids/lensamity-app/actions/workflows/quality_check.yml) [![deploy-render](https://github.com/ipersids/lensamity-app/actions/workflows/deploy-render.yml/badge.svg)](https://github.com/ipersids/lensamity-app/actions/workflows/deploy-render.yml)
+_______
+
 # Lensamity
 
 Lensamity is an online photo journal built around taking one photo a day to capture the moments that matter. Add photos from the past week, give them a title and description, and build your own gallery. You can share your photos with signed-in users or keep them private. Lensamity was built as a final project for the [University of Helsinki's Full Stack Open MOOC](https://www.helsinki.fi/en/admissions-and-education/open-university/multidisciplinary-themed-modules/full-stack).
