@@ -197,7 +197,13 @@
 |  | 0.75 | Added the API reference with endpoint descriptions, request and response formats, errors, and sequence diagrams. | `8543e5b` chore(docs): add API reference and sequence diagrams |
 |  | 0.25 | Added local development instructions for Docker and manual startup, and documented AI use in the README. | `d265e67` chore(docs): add instructions for local development |
 | 2026-11-07 | 0.50 | Added screenshots and a short user guide for the main features. Updated documentation links and architecture notes. | `a9faa29` chore(docs): add docs/user-guide.md for main features |
-| **Total** | **266.90** |  |  |
+|  | 0.25 | Fixed typos in user-facing messages, logs, and deployment output. Added AI-generation notes to the documentation. | `c2ab1d7` chore: fix typos in error and response messages |
+|  | 0.25 | Merged the project documentation into `main`. | `7daca05` merge(#35): add documentation |
+|  | 0.25 | Fixed upload-form overflow caused by long filenames. | `3e354db` fix(css): long filename triggers the overflow in AddPhotoPage component |
+| 2026-11-08 | 0.25 | Increased frontend request timeouts, the database startup timeout, and the server write timeout. | `ce0d0bb` fix: unable to reach the server issue (NS_BINDING_ABORTED) |
+|  | 0.25 | Added the header menu icon and an owner-only upload card in the gallery. Updated the home page and cleaned up shared styles. | `4751b3b` chore(web): improve ui and navigation |
+| 2026-11-09 | 0.25 | Matched the browser's allowed date range to UTC, checked dates before upload, and added upload-date instructions. | `b81793f` chore(web): add hint to AddPhotoPage about dates |
+| **Total** | **268.40** |  |  |
 
 ## Technologies used in the project
 
